@@ -1,0 +1,2741 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Step-up Training | 스포츠 경기 체력 자기주도 트레이닝 시스템</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg-dark: #0b0f19; --card-bg: #151c2c; --card-border: #232d42; --input-bg: #0f1523;
+      --accent-blue: #3b82f6; --accent-green: #10b981; --accent-amber: #f59e0b;
+      --accent-purple: #8b5cf6; --accent-rose: #f43f5e; --accent-pink: #ec4899;
+      --text-main: #f1f5f9; --text-sub: #94a3b8; --text-muted: #64748b; --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, sans-serif; }
+    body { background: var(--bg-dark); color: var(--text-main); min-height: 100vh; padding: 18px; line-height: 1.5; }
+    .container { max-width: 1120px; margin: 0 auto; }
+
+    header { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; margin-bottom: 14px; flex-wrap: wrap; gap: 12px; }
+    .logo { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+    .logo-icon { background: linear-gradient(135deg, var(--accent-green), var(--accent-blue)); width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 15px; color: #06281e; letter-spacing: -0.5px; }
+    .logo-text h1 { font-size: 19px; font-weight: 800; letter-spacing: -0.3px; }
+    .logo-text p { font-size: 12px; color: var(--text-sub); }
+
+    .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .nav-tabs { display: flex; background: var(--card-bg); padding: 4px; border-radius: 30px; border: 1px solid var(--card-border); }
+    .tab-btn { background: none; border: none; color: var(--text-sub); padding: 8px 16px; border-radius: 20px; font-weight: 700; font-size: 13px; cursor: pointer; transition: 0.2s; }
+    .tab-btn.active.health-mode { background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple)); color: #fff; }
+    .tab-btn.active.skill-mode { background: linear-gradient(135deg, var(--accent-blue), var(--accent-green)); color: #fff; }
+
+    .guide-btn { background: rgba(139,92,246,0.14); border: 1px solid rgba(139,92,246,0.4); color: #c4b5fd; padding: 8px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+    .tool-btn { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.35); color: #93c5fd; padding: 8px 12px; border-radius: 20px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+    .admin-toggle-btn { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-sub); padding: 8px 13px; border-radius: 20px; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+    .admin-toggle-btn.is-admin { background: rgba(16,185,129,0.15); border-color: var(--accent-green); color: #34d399; }
+
+    .sync-bar { font-size: 12px; padding: 8px 14px; border-radius: 8px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .sync-cloud { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); color: #34d399; }
+    .sync-local { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3); color: #fbbf24; }
+
+    .main-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 22px; margin-bottom: 24px; }
+    .hero-banner { border-radius: var(--radius); padding: 18px 20px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; }
+    .hero-banner.health-banner { background: linear-gradient(135deg, rgba(236,72,153,0.15), rgba(139,92,246,0.08)); border: 1px solid rgba(236,72,153,0.35); }
+    .hero-banner.skill-banner { background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(16,185,129,0.08)); border: 1px solid rgba(59,130,246,0.35); }
+
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+    .badge.health-badge { background: rgba(236,72,153,0.2); color: #f472b6; }
+    .badge.skill-badge { background: rgba(59,130,246,0.2); color: #60a5fa; }
+    .hero-banner h2 { font-size: 18.5px; font-weight: 800; margin-bottom: 4px; }
+    .hero-banner p { font-size: 13px; color: var(--text-sub); }
+
+    .admin-toolbar { background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.3); border-radius: 10px; padding: 12px 16px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .admin-toolbar-title { font-size: 13px; font-weight: 700; color: #34d399; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .join-code-pill { background: rgba(11,15,25,0.85); border: 1px solid rgba(52,211,153,0.4); color: #fde047; padding: 3px 10px; border-radius: 6px; font-size: 12px; font-weight: 800; }
+    .admin-toolbar-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    .btn { border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 5px; font-size: 13px; padding: 8px 13px; }
+    .btn-primary { background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); color: #fff; }
+    .btn-pink { background: linear-gradient(135deg, var(--accent-pink), var(--accent-purple)); color: #fff; }
+    .btn-green { background: var(--accent-green); color: #06281e; font-weight: 700; }
+    .btn-amber { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4); color: #fbbf24; }
+    .btn-rose { background: rgba(244,63,94,0.15); border: 1px solid rgba(244,63,94,0.4); color: #fda4af; }
+    .btn-ghost { background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-main); }
+    .btn-full { width: 100%; padding: 13px; font-size: 15px; }
+
+    .toolbar-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+    .search-box { flex: 1; min-width: 220px; max-width: 380px; }
+    .student-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+    .student-card { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: 0.2s; display: flex; flex-direction: column; justify-content: space-between; }
+    .student-card:hover { border-color: var(--accent-blue); transform: translateY(-2px); }
+    .stu-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; gap: 6px; }
+    .stu-id-title { font-size: 17px; font-weight: 800; color: var(--text-main); }
+    .stu-admin-sub { font-size: 12.5px; color: #34d399; font-weight: 600; margin-top: 3px; }
+    .level-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgba(59,130,246,0.2); color: #93c5fd; white-space: nowrap; }
+    .privacy-box { background: rgba(255,255,255,0.02); border: 1px dashed var(--card-border); border-radius: 8px; padding: 10px; font-size: 12px; color: var(--text-sub); margin-bottom: 10px; }
+
+    .stu-events-wrap { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+    .event-chip { background: rgba(255,255,255,0.04); border: 1px solid var(--card-border); border-radius: 6px; padding: 3px 7px; font-size: 11px; color: var(--text-main); }
+    .event-chip.weakest { border-color: rgba(244,63,94,0.45); background: rgba(244,63,94,0.1); color: #fda4af; }
+    .event-chip.top-grade { border-color: rgba(16,185,129,0.45); background: rgba(16,185,129,0.1); color: #6ee7b7; }
+    .stu-card-footer { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted); border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; }
+
+    .section-title { font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--card-border); padding-bottom: 8px; flex-wrap: wrap; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+    .form-group.full { grid-column: span 2; }
+    label { display: block; font-size: 12px; font-weight: 600; color: var(--text-sub); margin-bottom: 4px; }
+    input, select, textarea { width: 100%; background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-main); padding: 9px 11px; border-radius: 8px; font-size: 13.5px; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent-blue); }
+
+    .consent-wrapper { background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.3); border-radius: 10px; padding: 13px; }
+    .consent-header { font-size: 13px; font-weight: 800; color: #93c5fd; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .consent-scroll { background: rgba(11,15,25,0.75); border: 1px solid var(--card-border); border-radius: 8px; padding: 9px 11px; font-size: 11.5px; color: #cbd5e1; max-height: 115px; overflow-y: auto; line-height: 1.55; margin-bottom: 10px; }
+    .consent-check-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; color: var(--text-main); margin-bottom: 7px; cursor: pointer; }
+    .consent-check-row input[type="checkbox"] { width: 16px; height: 16px; margin-top: 2px; flex-shrink: 0; accent-color: var(--accent-green); }
+    .guardian-box { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.35); border-radius: 8px; padding: 10px; margin-top: 8px; }
+
+    .detail-header, .scorecard-panel, .chart-box, .phase-card { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px; margin-bottom: 16px; }
+    .detail-top-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+    .scorecard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 10px; }
+    .sc-item { background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 8px; padding: 11px; cursor: pointer; transition: 0.2s; }
+    .sc-item.active-sc { border-color: var(--accent-blue); background: rgba(59,130,246,0.12); }
+    .sc-item.priority-sc { border-color: rgba(244,63,94,0.45); }
+    .sc-item.elite-sc { border-color: rgba(16,185,129,0.45); }
+    .sc-top { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+    .sc-vals { font-size: 11.5px; color: var(--text-sub); margin-bottom: 6px; }
+    .sc-bar-bg { height: 6px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
+    .sc-bar-fill { height: 100%; border-radius: 99px; }
+
+    .ratio-panel { background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.28); border-radius: var(--radius); padding: 15px; margin-bottom: 16px; }
+    .ratio-bar { display: flex; height: 28px; border-radius: 8px; overflow: hidden; margin: 10px 0 8px; border: 1px solid var(--card-border); }
+    .ratio-seg { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; padding: 0 5px; }
+    .ratio-legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; color: var(--text-sub); }
+
+    .theory-box { background: linear-gradient(135deg, rgba(139,92,246,0.1), rgba(59,130,246,0.08)); border: 1px solid rgba(139,92,246,0.35); border-radius: var(--radius); padding: 15px 16px; margin-bottom: 16px; }
+    .theory-title { font-size: 14px; font-weight: 800; color: #c4b5fd; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+    .theory-body { font-size: 13px; color: #e2e8f0; line-height: 1.6; }
+    .field-proxy-pill { margin-top: 8px; background: rgba(11,15,25,0.7); border: 1px solid rgba(96,165,250,0.3); padding: 8px 11px; border-radius: 8px; font-size: 12.5px; color: #93c5fd; }
+    .safety-banner { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.3); border-radius: 8px; padding: 9px 12px; font-size: 12px; color: #fde047; margin-top: 8px; line-height: 1.5; }
+
+    .designer-box { background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(59,130,246,0.06)); border: 1px solid rgba(16,185,129,0.35); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+    .designer-head { font-size: 14px; font-weight: 800; color: #34d399; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px; }
+    .stage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px; }
+    .stage-card { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 10px 12px; }
+    .stage-label { font-size: 11.5px; font-weight: 700; color: #60a5fa; margin-bottom: 5px; display: flex; justify-content: space-between; }
+    .rest-guide { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.3); border-radius: 8px; padding: 9px 12px; font-size: 12.5px; color: #bfdbfe; margin-bottom: 10px; }
+
+    .event-tabs-bar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; background: var(--input-bg); padding: 10px; border-radius: var(--radius); border: 1px solid var(--card-border); }
+    .ev-tab-btn { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-sub); padding: 7px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+    .ev-tab-btn.active { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+
+    .sub-tabs { display: flex; gap: 8px; margin-bottom: 18px; border-bottom: 1px solid var(--card-border); padding-bottom: 10px; flex-wrap: wrap; }
+    .sub-tab-btn { background: var(--input-bg); border: 1px solid var(--card-border); color: var(--text-sub); padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .sub-tab-btn.active { background: var(--accent-purple); border-color: var(--accent-purple); color: #fff; }
+
+    .summary-card { background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: var(--radius); padding: 14px; margin-bottom: 16px; display: flex; justify-content: space-around; text-align: center; gap: 10px; flex-wrap: wrap; }
+    .summary-item .label { font-size: 11px; color: var(--text-sub); }
+    .summary-item .val { font-size: 16px; font-weight: 800; color: #60a5fa; margin-top: 2px; }
+
+    .exercise-item { padding: 12px; border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.06); border-radius: 8px; margin-bottom: 9px; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; font-size: 13.5px; }
+    .ex-role { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 4px; margin-right: 6px; background: rgba(59,130,246,0.2); color: #93c5fd; }
+    .ex-info { font-weight: 700; font-size: 14.5px; }
+    .ex-detail { font-size: 12.5px; color: var(--text-sub); margin-top: 4px; }
+    .ex-right-box { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+    .ex-dosage { text-align: right; font-weight: 800; white-space: nowrap; font-size: 12.5px; background: rgba(255,255,255,0.06); padding: 5px 10px; border-radius: 6px; color: #fde047; }
+
+    .wlog-form-box { background: rgba(16,185,129,0.05); border: 1px solid rgba(16,185,129,0.3); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+    .wlog-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+    .rpe-badge { display: inline-block; padding: 2px 7px; border-radius: 5px; font-size: 11px; font-weight: 700; background: rgba(139,92,246,0.2); color: #c4b5fd; }
+
+    .record-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 10px; }
+    .record-table th, .record-table td { padding: 9px 8px; text-align: left; border-bottom: 1px solid var(--card-border); }
+    .record-table th { color: var(--text-sub); font-weight: 600; font-size: 12px; }
+
+    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+    .modal-backdrop.open { display: flex; }
+    .modal-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); width: 100%; max-width: 600px; padding: 22px; max-height: 92vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid var(--card-border); padding-bottom: 8px; }
+    .modal-close { background: none; border: none; color: var(--text-sub); font-size: 22px; cursor: pointer; }
+
+    /* Interactive 4-in-1 Field Tools */
+    .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .tool-card { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; }
+    .timer-display { font-size: 36px; font-weight: 900; text-align: center; color: #34d399; padding: 10px; background: rgba(11,15,25,0.85); border-radius: 10px; border: 1px solid var(--card-border); margin: 8px 0; font-variant-numeric: tabular-nums; }
+    .talk-prompt-box { background: rgba(11,15,25,0.85); border: 1px dashed rgba(253,224,71,0.45); border-radius: 8px; padding: 8px 10px; font-size: 11.5px; color: #fef08a; margin: 6px 0; line-height: 1.5; }
+    .talk-btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin: 6px 0; }
+    .rir-btn-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 8px 0; }
+    .seg-btn { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text-sub); padding: 7px 6px; border-radius: 7px; font-size: 11px; font-weight: 700; cursor: pointer; text-align: left; transition: 0.15s; line-height: 1.35; }
+    .seg-btn.center-txt { text-align: center; padding: 8px 2px; }
+    .seg-btn.active-g { background: rgba(16,185,129,0.2); border-color: #10b981; color: #6ee7b7; }
+    .seg-btn.active-b { background: rgba(59,130,246,0.22); border-color: #3b82f6; color: #93c5fd; }
+    .seg-btn.active-y { background: rgba(245,158,11,0.2); border-color: #f59e0b; color: #fde047; }
+    .seg-btn.active-r { background: rgba(244,63,94,0.2); border-color: #f43f5e; color: #fda4af; }
+    .tool-result-box { background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 8px; padding: 8px 10px; font-size: 11.5px; color: #e2e8f0; display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 50px; margin-top: 6px; }
+    .copy-mini-btn { background: rgba(59,130,246,0.18); border: 1px solid rgba(59,130,246,0.4); color: #93c5fd; padding: 5px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+
+    /* Manual / Guide Step Cards */
+    .guide-step-card { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 13px 15px; margin-bottom: 10px; }
+    .guide-step-badge { display: inline-block; background: rgba(59,130,246,0.2); color: #93c5fd; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 5px; margin-bottom: 5px; }
+    .guide-step-title { font-size: 14px; font-weight: 800; color: var(--text-main); margin-bottom: 4px; }
+    .guide-step-desc { font-size: 12.5px; color: var(--text-sub); line-height: 1.55; }
+
+    @media (max-width: 700px) {
+      .form-grid, .stage-grid, .wlog-grid, .tools-grid { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: span 1; }
+      .exercise-item { flex-direction: column; gap: 8px; }
+      .ex-right-box { flex-direction: row; align-items: center; width: 100%; justify-content: space-between; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="logo" onclick="goHomeCurrentMode()">
+      <div class="logo-icon">STEP</div>
+      <div class="logo-text">
+        <h1>Step-up Training</h1>
+        <p>스포츠 경기 체력 자기주도 트레이닝 시스템 (초5~고3)</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="nav-tabs">
+        <button class="tab-btn active health-mode" id="nav-health" onclick="switchTopMode('health')">❤ 건강체력</button>
+        <button class="tab-btn" id="nav-skill" onclick="switchTopMode('skill')">⚡ 운동체력</button>
+      </div>
+      <button class="guide-btn" onclick="openModal('user-guide-modal')">📖 이용 가이드</button>
+      <button class="tool-btn" onclick="openModal('field-tools-modal')">⏱️ 현장측정 도구</button>
+      <button class="admin-toggle-btn" id="admin-btn" onclick="handleAdminToggle()">🔒 교사 관리자</button>
+    </div>
+  </header>
+
+  <div id="sync-status-bar" class="sync-bar sync-local">
+    <span id="sync-status-text">⏳ 연결 상태 확인 중...</span>
+    <button class="btn btn-ghost" style="padding:4px 10px; font-size:11px;" onclick="refreshCurrentList()">🔄 새로고침</button>
+  </div>
+
+  <!-- 교사 관리자 툴바 -->
+  <div id="admin-toolbar" class="admin-toolbar" style="display: none;">
+    <div class="admin-toolbar-title">
+      <span>🔓 교사 관리자 모드</span>
+      <span class="join-code-pill" id="admin-join-code-display">가입코드: 2026</span>
+    </div>
+    <div class="admin-toolbar-btns">
+      <button class="btn btn-green" onclick="openRegisterModalForCurrentMode()">➕ 학생 등록</button>
+      <button class="btn btn-amber" onclick="openChangeJoinCodeModal()">🔐 가입코드</button>
+      <button class="btn btn-primary" onclick="exportResearchCSV()">🔬 연구·효과분석 비식별 CSV (P001~)</button>
+      <button class="btn btn-ghost" onclick="exportSummaryCSV()">📊 수행평가 요약 CSV</button>
+      <button class="btn btn-ghost" onclick="exportLogsCSV()">📥 운동일지 전체 CSV</button>
+      <button class="btn btn-ghost" onclick="openChangeAdminPinModal()">🔑 교사 비번</button>
+      <button class="btn btn-rose" onclick="purgeAllStudentsData()">🗑️ 종료 후 일괄 파기</button>
+      <button class="btn btn-ghost" onclick="logoutAdmin()">잠금</button>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 1: 건강체력 (PAPS 1~5등급) ==================== -->
+  <div id="health-wrapper">
+    <div id="health-dashboard-view" class="main-card">
+      <div class="hero-banner health-banner">
+        <div>
+          <span class="badge health-badge">❤ 종합 체력 트레이닝 · PAPS 5대 영역 12종목 지원</span>
+          <h2>건강체력 1~5등급 진단 및 학술 이론 기반 자기주도 처방</h2>
+          <p>학교 측정 종목에 맞춰 기록을 입력하면 <strong>1~5등급</strong>이 자동 산출되며, <strong>문헌 추천안</strong>을 바탕으로 본인의 운동량과 강도를 직접 설계할 수 있습니다.</p>
+        </div>
+        <button class="btn btn-pink" style="padding:11px 16px;" onclick="openHealthRegisterModal()">➕ 학생 등록하기</button>
+      </div>
+      <div class="toolbar-row">
+        <div class="search-box">
+          <input type="text" id="health-search" placeholder="🔍 아이디 검색 (관리자는 학번·이름 검색)..." oninput="renderHealthGrid()">
+        </div>
+        <div style="font-size:13px; color:var(--text-sub);" id="health-count-label">등록 계정: 0명</div>
+      </div>
+      <div id="health-student-grid" class="student-grid"></div>
+    </div>
+
+    <div id="health-detail-view" class="main-card" style="display:none;">
+      <div class="detail-header">
+        <div class="detail-top-row">
+          <div>
+            <button class="btn btn-ghost" style="margin-bottom:8px;" onclick="goHomeCurrentMode()">← 목록으로 돌아가기</button>
+            <h2 id="h-det-title" style="font-size:20px; font-weight:800;"></h2>
+            <p id="h-det-subtitle" style="font-size:13px; color:var(--text-sub); margin-top:2px;"></p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;" id="h-det-actions"></div>
+        </div>
+        <div id="h-det-growth-notice" style="display:none; margin-top:8px; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.35); color:#6ee7b7; padding:8px 12px; border-radius:8px; font-size:12.5px;"></div>
+      </div>
+
+      <div class="scorecard-panel">
+        <div class="section-title">
+          <span style="color:#f472b6;">📊 PAPS 5대 영역 등급 성적표 (영역 클릭 시 처방·일지 전환)</span>
+          <button class="btn btn-ghost" style="padding:5px 10px; font-size:12px;" onclick="openHealthEditModal()">✏️ 측정 종목·기록 수정</button>
+        </div>
+        <div id="h-scorecard-grid" class="scorecard-grid"></div>
+      </div>
+
+      <div class="event-tabs-bar" id="h-domain-tabs"></div>
+      <div class="sub-tabs">
+        <button class="sub-tab-btn active" id="h-subtab-rx" onclick="switchHealthSubTab('rx')">🪄 문헌 추천 & 학생 주도 4단계 처방</button>
+        <button class="sub-tab-btn" id="h-subtab-wlog" onclick="switchHealthSubTab('wlog')">🗓️ 일자별 누적 운동일지 (자기·동료평가)</button>
+        <button class="sub-tab-btn" id="h-subtab-growth" onclick="switchHealthSubTab('growth')">📈 재측정 성장 그래프 & 등급 변화</button>
+      </div>
+
+      <!-- 건강체력 SUB 1: 처방전 -->
+      <div id="h-rx-panel">
+        <div class="theory-box" id="h-theory-box"></div>
+        <div class="designer-box">
+          <div class="designer-head">
+            <span>🎛️ 학생 주도형 트레이닝 설계 (추천값 우선 제시 → 탐구·수준에 따라 수정 가능)</span>
+          </div>
+          <div class="form-grid" style="margin-bottom:10px;">
+            <div class="form-group">
+              <label>트레이닝 방법 선택 (5대 방법 · 학술 추천 우선)</label>
+              <select id="h-method-sel" onchange="onHealthMethodChange()"></select>
+            </div>
+            <div class="form-group">
+              <label>세부 운동 종목 / 드릴 선택 (추천 종목 또는 직접 선택)</label>
+              <select id="h-drill-sel" onchange="onHealthDesignerUpdate()"></select>
+            </div>
+          </div>
+          <div class="stage-grid">
+            <div class="stage-card">
+              <div class="stage-label"><span>1단계. 과학적 강도 측정 지표</span><span id="h-track-badge" style="color:#34d399;"></span></div>
+              <select id="h-stage1-metric" onchange="onHealthMetricChange()"></select>
+            </div>
+            <div class="stage-card">
+              <div class="stage-label"><span>2단계. 목표 강도 단계 (개인별 환산치)</span></div>
+              <select id="h-stage2-zone" onchange="onHealthDesignerUpdate()"></select>
+            </div>
+            <div class="stage-card">
+              <div class="stage-label"><span>3단계. 세트 수 (Sets)</span></div>
+              <select id="h-stage3-sets" onchange="onHealthDesignerUpdate()"></select>
+            </div>
+            <div class="stage-card">
+              <div class="stage-label"><span>4단계. 반복 횟수 / 운동 시간</span></div>
+              <select id="h-stage4-vol" onchange="onHealthDesignerUpdate()"></select>
+            </div>
+          </div>
+          <div class="rest-guide" id="h-rest-guide"></div>
+          <div class="form-group full">
+            <label>✍️ 내가 처방을 이렇게 설정/수정한 이유 (참고 자료·이론·컨디션 등 자기주도 탐구 기록)</label>
+            <input type="text" id="h-rationale-input" placeholder="예: 심폐지구력 3등급 향상을 위해 ACSM 권장 HRR 65~75%와 3세트로 설정함">
+          </div>
+        </div>
+        <div id="h-routine-preview"></div>
+      </div>
+
+      <!-- 건강체력 SUB 2: 일자별 운동일지 -->
+      <div id="h-wlog-panel" style="display:none;">
+        <div class="summary-card" id="h-wlog-summary"></div>
+        <div class="wlog-form-box">
+          <div class="section-title" style="border-bottom-color:rgba(236,72,153,0.3); color:#f472b6;">
+            <span>✍️ 일일 체력 트레이닝 누적 기록 및 자기·동료평가</span>
+          </div>
+          <form onsubmit="addHealthWorkoutLog(event)">
+            <div class="wlog-grid">
+              <div><label>운동 일자 *</label><input type="date" id="h-wlog-date" required></div>
+              <div>
+                <label>체력 영역 *</label>
+                <select id="h-wlog-domain" required>
+                  <option value="cardio">심폐지구력</option>
+                  <option value="flex">유연성</option>
+                  <option value="strength">근력·근지구력</option>
+                  <option value="power">순발력</option>
+                  <option value="bmi">신체구성(체지방)</option>
+                </select>
+              </div>
+              <div><label>트레이닝 방법 · 수행 운동명 *</label><input type="text" id="h-wlog-ex" required></div>
+            </div>
+            <div class="wlog-grid">
+              <div><label>설정한 4단계 처방 (강도·세트·횟수/시간) *</label><input type="text" id="h-wlog-plan" required></div>
+              <div><label>실제 측정 강도 (심박수 bpm / 말하기 / RIR) *</label><input type="text" id="h-wlog-actual" placeholder="예: 164bpm, 말하기 2단계(한 문장 완결)" required></div>
+              <div><label>자기평가 (오늘 훈련 성찰 한 줄)</label><input type="text" id="h-wlog-self" placeholder="목표 강도 유지 여부, 자세 느낌 등"></div>
+            </div>
+            <div class="form-group full" style="margin-bottom:12px;">
+              <label>동료평가 (짝꿍 관찰·말하기 테스트·자세 피드백)</label>
+              <input type="text" id="h-wlog-peer" placeholder="예: 짝(홍길동) 확인 - 한 문장 안 끊고 말하며 리듬 유지함">
+            </div>
+            <button type="submit" class="btn btn-pink btn-full">➕ 일자별 누적 운동일지 저장</button>
+          </form>
+        </div>
+
+        <div class="chart-box">
+          <div class="section-title">
+            <span>📚 누적 운동 수행 이력</span>
+            <select id="h-wlog-filter" style="width:auto; font-size:12px; padding:5px 10px;" onchange="renderHealthWlogPanel()">
+              <option value="ALL">전체 영역 보기</option>
+              <option value="cardio">심폐지구력</option>
+              <option value="flex">유연성</option>
+              <option value="strength">근력·근지구력</option>
+              <option value="power">순발력</option>
+              <option value="bmi">신체구성</option>
+            </select>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="record-table">
+              <thead><tr><th>일자</th><th>영역</th><th>운동명 · 처방</th><th>실제 측정 강도</th><th>자기평가 · 동료평가</th><th>관리</th></tr></thead>
+              <tbody id="h-wlog-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 건강체력 SUB 3: 재측정 그래프 -->
+      <div id="h-growth-panel" style="display:none;">
+        <div class="chart-box">
+          <div class="section-title">
+            <span id="h-chart-title">📊 PAPS 영역별 성장 추이 그래프</span>
+            <span id="h-chart-goal" style="font-size:12px; color:#34d399;"></span>
+          </div>
+          <div id="h-svg-chart" style="width:100%; overflow-x:auto; margin-bottom:14px;"></div>
+          <form onsubmit="addHealthRecord(event)" style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end;">
+            <div style="flex:1; min-width:130px;"><label>재측정 날짜</label><input type="date" id="h-rec-date" required></div>
+            <div style="flex:1; min-width:130px;"><label>새 측정 기록 (<span id="h-rec-unit">회</span>)</label><input type="number" step="0.1" id="h-rec-val" required></div>
+            <button type="submit" class="btn btn-pink" style="padding:10px 16px;">➕ 기록 저장 & 등급 재판정</button>
+          </form>
+          <table class="record-table">
+            <thead><tr><th>측정일</th><th>영역 · 종목</th><th>기록</th><th>판정 등급</th><th>다음 목표</th><th>관리</th></tr></thead>
+            <tbody id="h-rec-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TAB 2: 운동체력 (경기 체력 요소 비율 & 학계 규준) ==================== -->
+  <div id="skill-wrapper" style="display:none;">
+    <div id="skill-dashboard-view" class="main-card">
+      <div class="hero-banner skill-banner">
+        <div>
+          <span class="badge skill-badge">⚡ 경기 체력 트레이닝 · 종목별 체력 요소 비율 & 학계 규준</span>
+          <h2>스포츠 종목별 체력 요소 중요도 분석 및 자기주도 경기 체력 설계</h2>
+          <p>희망 스포츠 종목의 <strong>체력 요소 중요도 순위·비율</strong>을 시각화하고, <strong>학계 표준 필드 테스트(민첩성·평형성·협응성·순발력)</strong>와 4단계 맞춤 처방을 실천합니다.</p>
+        </div>
+        <button class="btn btn-primary" style="padding:11px 16px;" onclick="openSkillRegisterModal()">➕ 학생 등록하기</button>
+      </div>
+      <div class="toolbar-row">
+        <div class="search-box">
+          <input type="text" id="skill-search" placeholder="🔍 아이디 검색 (관리자는 학번·이름 검색)..." oninput="renderSkillGrid()">
+        </div>
+        <div style="font-size:13px; color:var(--text-sub);" id="skill-count-label">등록 계정: 0명</div>
+      </div>
+      <div id="skill-student-grid" class="student-grid"></div>
+    </div>
+
+    <div id="skill-detail-view" class="main-card" style="display:none;">
+      <div class="detail-header">
+        <div class="detail-top-row">
+          <div>
+            <button class="btn btn-ghost" style="margin-bottom:8px;" onclick="goHomeCurrentMode()">← 목록으로 돌아가기</button>
+            <h2 id="s-det-title" style="font-size:20px; font-weight:800;"></h2>
+            <p id="s-det-subtitle" style="font-size:13px; color:var(--text-sub); margin-top:2px;"></p>
+          </div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap;" id="s-det-actions"></div>
+        </div>
+        <div id="s-paps-link-banner" style="display:none; margin-top:8px; background:rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.35); color:#93c5fd; padding:8px 12px; border-radius:8px; font-size:12.5px;"></div>
+      </div>
+
+      <div class="ratio-panel" id="s-ratio-panel"></div>
+
+      <div class="sub-tabs">
+        <button class="sub-tab-btn active" id="s-subtab-rx" onclick="switchSkillSubTab('rx')">🪄 경기 체력 4단계 맞춤 처방 설계</button>
+        <button class="sub-tab-btn" id="s-subtab-test" onclick="switchSkillSubTab('test')">📏 학계 표준 필드 테스트 (사전·사후 비교)</button>
+        <button class="sub-tab-btn" id="s-subtab-wlog" onclick="switchSkillSubTab('wlog')">🗓️ 일자별 누적 운동일지 (자기·동료평가)</button>
+      </div>
+
+      <!-- 운동체력 SUB 1: 4단계 처방 -->
+      <div id="s-rx-panel">
+        <div class="form-grid" style="background:var(--input-bg); padding:15px; border-radius:var(--radius); border:1px solid var(--card-border);">
+          <div class="form-group">
+            <label>집중 훈련할 운동체력 요소 선택</label>
+            <select id="s-comp-sel" onchange="onSkillCompChange()">
+              <option value="power">순발력 (Power · 폭발적 도약/투사)</option>
+              <option value="agility">민첩성 (Agility · 급감속 및 방향 전환)</option>
+              <option value="speed">스피드 (Speed · 최대 가속 및 질주)</option>
+              <option value="balance">평형성 (Balance · 정적·동적 균형 제어)</option>
+              <option value="coordination">협응성 (Coordination · 눈-손/발 협응)</option>
+              <option value="reaction">반응시간 (Reaction · 시각·청각 자극 반응)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>본인 훈련 숙련도 수준 선택</label>
+            <select id="s-level-sel" onchange="onSkillCompChange()">
+              <option value="1">입문 (기초 동작 제어 및 안전 적응)</option>
+              <option value="2" selected>중급 (리듬·속도 향상 및 반복 지구력)</option>
+              <option value="3">숙련 (고속 신경계 피킹 및 경기 실전 적용)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="theory-box" id="s-theory-box"></div>
+
+        <div class="designer-box">
+          <div class="designer-head">
+            <span>🎛️ 경기 체력 자기주도 4단계 처방 (추천값 우선 제시 → 수정 가능)</span>
+          </div>
+          <div class="form-grid" style="margin-bottom:10px;">
+            <div class="form-group">
+              <label>트레이닝 방법 (5대 방법)</label>
+              <select id="s-method-sel" onchange="onSkillMethodChange()"></select>
+            </div>
+            <div class="form-group">
+              <label>세부 훈련 드릴 선택</label>
+              <select id="s-drill-sel" onchange="onSkillDesignerUpdate()"></select>
+            </div>
+          </div>
+
+          <div class="stage-grid">
+            <div class="stage-card">
+              <div class="stage-label"><span>1단계. 과학적 강도/템포 설정 기준</span><span id="s-track-badge" style="color:#34d399;"></span></div>
+              <select id="s-stage1-metric" onchange="onSkillMetricChange()"></select>
+            </div>
+            <div class="stage-card">
+              <div class="stage-label"><span>2단계. 목표 강도 / 템포 / 구간</span></div>
+              <select id="s-stage2-zone" onchange="onSkillDesignerUpdate()"></select>
+            </div>
+            <div class="stage-card">
+              <div class="stage-label"><span>3단계. 세트 수 (Sets)</span></div>
+              <select id="s-stage3-sets" onchange="onSkillDesignerUpdate()"></select>
+            </div>
+            <div class="stage-card">
+              <div class="stage-label"><span>4단계. 반복 횟수 / 수행 시간</span></div>
+              <select id="s-stage4-vol" onchange="onSkillDesignerUpdate()"></select>
+            </div>
+          </div>
+
+          <div class="rest-guide" id="s-rest-guide"></div>
+
+          <div class="form-group full">
+            <label>✍️ 내가 처방을 이렇게 설정/수정한 이유 (종목 비율·참고 자료·컨디션)</label>
+            <input type="text" id="s-rationale-input" placeholder="예: 축구에서 민첩성(30%)과 순발력(25%) 비중이 높아 T-테스트 기반 방향전환 훈련 선택">
+          </div>
+        </div>
+
+        <div id="s-routine-preview"></div>
+      </div>
+
+      <!-- 운동체력 SUB 2: 학계 표준 필드 테스트 -->
+      <div id="s-test-panel" style="display:none;">
+        <div class="theory-box" style="margin-bottom:16px;">
+          <div class="theory-title"><span>📏 학계 표준 필드 테스트 규준 평가 (사전 · 사후 수행 능력 비교)</span></div>
+          <div class="theory-body">실험실 장비 없이 체육관에서 스톱워치·줄자·테니스공으로 측정 가능한 <strong>체육측정평가학 표준 검사</strong>입니다. 학생의 학교급과 성별에 맞는 학계 규준으로 자동 판정됩니다.</div>
+        </div>
+
+        <div class="wlog-form-box">
+          <form onsubmit="addSkillTestRecord(event)">
+            <div class="wlog-grid">
+              <div><label>측정 일자 *</label><input type="date" id="s-test-date" required></div>
+              <div>
+                <label>학계 표준 검사 종목 *</label>
+                <select id="s-test-type" onchange="updateSkillTestHint()" required>
+                  <option value="stork">황새 서기 검사 (평형성 · 초)</option>
+                  <option value="unipedal">눈 감고 외발서기 (고유수용감각 · 초)</option>
+                  <option value="illinois">일리노이 민첩성 검사 (민첩성 · 초)</option>
+                  <option value="ttest">T-테스트 (전후좌우 민첩성 · 초)</option>
+                  <option value="walltoss">벽 공 던지고 받기 (눈-손 협응 · 30초 회)</option>
+                  <option value="sprint50">50m 달리기 (스피드/순발력 · 초)</option>
+                  <option value="longjump">제자리멀리뛰기 (순발력 · cm)</option>
+                </select>
+              </div>
+              <div><label>측정 기록 * <span id="s-test-unit-hint" style="color:#34d399;">(초)</span></label><input type="number" step="0.01" id="s-test-val" required></div>
+            </div>
+            <div id="s-test-protocol-hint" style="font-size:12px; color:#cbd5e1; margin-bottom:10px; background:rgba(11,15,25,0.6); padding:8px 10px; border-radius:6px;"></div>
+            <button type="submit" class="btn btn-primary btn-full">➕ 측정 기록 저장 및 학계 규준 판정</button>
+          </form>
+        </div>
+
+        <div class="chart-box">
+          <div class="section-title"><span>📊 필드 테스트 사전 · 사후 변화 이력</span></div>
+          <div style="overflow-x:auto;">
+            <table class="record-table">
+              <thead><tr><th>측정일</th><th>표준 검사명</th><th>측정 기록</th><th>학계 규준 판정</th><th>관리</th></tr></thead>
+              <tbody id="s-test-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 운동체력 SUB 3: 일자별 운동일지 -->
+      <div id="s-wlog-panel" style="display:none;">
+        <div class="summary-card" id="s-wlog-summary"></div>
+        <div class="wlog-form-box">
+          <div class="section-title" style="border-bottom-color:rgba(59,130,246,0.3); color:#60a5fa;">
+            <span>✍️ 일일 경기 체력 누적 기록 및 자기·동료평가</span>
+          </div>
+          <form onsubmit="addSkillWorkoutLog(event)">
+            <div class="wlog-grid">
+              <div><label>운동 일자 *</label><input type="date" id="s-wlog-date" required></div>
+              <div>
+                <label>훈련 체력 요소 *</label>
+                <select id="s-wlog-comp" required>
+                  <option value="power">순발력</option>
+                  <option value="agility">민첩성</option>
+                  <option value="speed">스피드</option>
+                  <option value="balance">평형성</option>
+                  <option value="coordination">협응성</option>
+                  <option value="reaction">반응시간</option>
+                </select>
+              </div>
+              <div><label>트레이닝 방법 · 수행 드릴 *</label><input type="text" id="s-wlog-ex" required></div>
+            </div>
+            <div class="wlog-grid">
+              <div><label>설정한 4단계 처방 (강도·세트·횟수/시간) *</label><input type="text" id="s-wlog-plan" required></div>
+              <div><label>실제 측정 결과 (기록 초/BPM/Borg CR-10) *</label><input type="text" id="s-wlog-actual" placeholder="예: 7.45초 주파 / 120 BPM 완료" required></div>
+              <div><label>자기평가 (오늘 훈련 성찰 한 줄)</label><input type="text" id="s-wlog-self" placeholder="스텝 리듬, 감속 제어 느낌 등"></div>
+            </div>
+            <div class="form-group full" style="margin-bottom:12px;">
+              <label>동료평가 (짝꿍 스톱워치 측정·자세 피드백)</label>
+              <input type="text" id="s-wlog-peer" placeholder="예: 짝(김철수) 측정 - 코너 턴 시 중심 낮추기가 좋아짐">
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">➕ 일자별 누적 운동일지 저장</button>
+          </form>
+        </div>
+
+        <div class="chart-box">
+          <div class="section-title"><span>📚 누적 경기 체력 수행 이력</span></div>
+          <div style="overflow-x:auto;">
+            <table class="record-table">
+              <thead><tr><th>일자</th><th>요소</th><th>훈련명 · 처방</th><th>실제 측정 결과</th><th>자기평가 · 동료평가</th><th>관리</th></tr></thead>
+              <tbody id="s-wlog-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODALS ==================== -->
+
+<!-- 0. 학생용·교사용 이용 가이드 (온보딩 매뉴얼) -->
+<div class="modal-backdrop" id="user-guide-modal">
+  <div class="modal-box" style="max-width:640px;">
+    <div class="modal-header">
+      <h3>📖 Step-up Training 이용 가이드 (매뉴얼)</h3>
+      <button class="modal-close" onclick="closeModal('user-guide-modal')">×</button>
+    </div>
+
+    <div class="sub-tabs" style="margin-bottom:14px;">
+      <button class="sub-tab-btn active" id="guide-tab-student" onclick="switchGuideTab('student')">👨‍🎓 학생용 4단계 이용 매뉴얼</button>
+      <button class="sub-tab-btn" id="guide-tab-teacher" onclick="switchGuideTab('teacher')">👨‍🏫 교사·연구자용 수업 운영 안내</button>
+    </div>
+
+    <div id="guide-body-student">
+      <div class="guide-step-card">
+        <span class="guide-step-badge">STEP 1 · 계정 등록 및 동의</span>
+        <div class="guide-step-title">1. 나만의 공개 아이디 만들기</div>
+        <div class="guide-step-desc">• 상단에서 <strong>[❤ 건강체력]</strong> 또는 <strong>[⚡ 운동체력]</strong> 탭을 고른 뒤 <strong>[➕ 학생 등록하기]</strong>를 누릅니다.<br>• 선생님이 알려주신 <strong>학교 가입코드</strong>를 입력하고, 친구들에게 보일 별칭(공개 아이디)과 나만의 <strong>숫자 4자리 비밀번호</strong>를 설정하세요.<br>• 개인정보 수집·이용 동의를 확인합니다. <em>(초5~중2 학생은 가정통신문으로 학부모님 사전 동의를 받은 뒤 보호자 성함을 입력합니다.)</em></div>
+      </div>
+
+      <div class="guide-step-card">
+        <span class="guide-step-badge">STEP 2 · 나의 체력 수준 진단</span>
+        <div class="guide-step-title">2. PAPS 등급 및 종목별 체력 요소 분석</div>
+        <div class="guide-step-desc">• <strong>건강체력:</strong> 학교에서 측정한 5대 영역 종목과 기록을 입력하면 나의 학년·성별 기준 <strong>1~5등급</strong>과 다음 목표 기록이 자동 계산됩니다.<br>• <strong>운동체력:</strong> 내가 좋아하는 스포츠 종목을 선택하면 필요한 체력 요소 비율(%)을 분석해 주고, <strong>[필드 테스트]</strong> 탭에서 민첩성·평형성·협응성 기록을 측정할 수 있습니다.</div>
+      </div>
+
+      <div class="guide-step-card">
+        <span class="guide-step-badge">STEP 3 · 자기주도 4단계 처방 설계</span>
+        <div class="guide-step-title">3. 문헌 추천안을 바탕으로 내 운동 처방 완성하기</div>
+        <div class="guide-step-desc">• 가장 보완하고 싶은 영역(예: 4·5등급 영역 또는 종목 1순위 요소)을 클릭하면 학계 이론에 기반한 <strong>[⭐ 추천]</strong> 훈련법과 목표 강도(목표 심박수·RIR·속도 구간)가 제시됩니다.<br>• 나의 체력 수준과 오늘 컨디션에 맞게 <strong>1~4단계(강도 지표·목표 구간·세트 수·반복 수)</strong>를 직접 조절하고, <strong>설계 이유</strong>를 한 줄로 적어보세요.</div>
+      </div>
+
+      <div class="guide-step-card" style="margin-bottom:0;">
+        <span class="guide-step-badge">STEP 4 · 현장 측정 & 운동일지 기록</span>
+        <div class="guide-step-title">4. 짝꿍과 함께 측정하고 일지·재측정 그래프 남기기</div>
+        <div class="guide-step-desc">• 체육관 훈련 중 상단의 <strong>[⏱️ 현장측정 도구]</strong>를 눌러 <strong>15초 심박수·말하기 테스트·메트로놈·RIR 판정기</strong>로 실제 운동 강도를 측정하고 <strong>[복사]</strong>하세요.<br>• 처방전 아래 <strong>[✅ 이 처방으로 오늘 운동일지 작성 →]</strong> 버튼을 누르면 계획이 자동 입력되며, 실제 측정 수치와 <strong>자기평가·짝꿍 동료평가</strong>를 기록해 누적할 수 있습니다.</div>
+      </div>
+    </div>
+
+    <div id="guide-body-teacher" style="display:none;">
+      <div class="guide-step-card">
+        <span class="guide-step-badge" style="background:rgba(16,185,129,0.2); color:#6ee7b7;">수업 전 준비</span>
+        <div class="guide-step-title">1. 관리자 로그인 및 가입코드 안내</div>
+        <div class="guide-step-desc">• 우측 상단 <strong>[🔒 교사 관리자]</strong> 버튼을 눌러 로그인합니다. <em>(초기 비밀번호: <strong>1234</strong> — 로그인 후 반드시 변경해 주세요.)</em><br>• <strong>[🔐 가입코드]</strong> 버튼으로 반별·학년도별 가입코드를 설정한 뒤 학생들에게 안내합니다. 만 14세 미만(초5~중2) 대상 수업 시 가정통신문(e알리미)으로 학부모 동의를 사전 수합해 주세요.</div>
+      </div>
+
+      <div class="guide-step-card">
+        <span class="guide-step-badge" style="background:rgba(16,185,129,0.2); color:#6ee7b7;">체육관 수업 운영</span>
+        <div class="guide-step-title">2. 2인 1조 순환 측정 및 자기주도 탐구 유도</div>
+        <div class="guide-step-desc">• 학생 화면에서는 <strong>공개 아이디만 표시</strong>되고 학번·실명·등급은 잠금 처리되어 학생 간 기록 노출을 방지합니다.<br>• 2인 1조로 짝을 지어 한 학생이 운동하는 동안 다른 학생이 <strong>[⏱️ 현장측정 도구]</strong>의 4대 측정기(15초 심박수·말하기 테스트·메트로놈·RIR)로 측정해 주고 결과를 복사해 동료평가를 작성하게 하면 수업 집중도가 높아집니다.</div>
+      </div>
+
+      <div class="guide-step-card" style="margin-bottom:0;">
+        <span class="guide-step-badge" style="background:rgba(16,185,129,0.2); color:#6ee7b7;">평가 및 연구 효과 분석</span>
+        <div class="guide-step-title">3. 비식별 연구 통계 추출 및 종료 후 데이터 파기</div>
+        <div class="guide-step-desc">• <strong>[🔬 연구·효과분석 비식별 CSV (P001~)]</strong> 버튼을 누르면 연구 활용에 동의한 학생만 자동 필터링되며, 학번·실명이 제거된 사전·사후 변화량 및 자기주도 설계 횟수 통계가 추출됩니다.<br>• 해당 학년도 수업 및 효과 분석이 종료되면 CSV 백업 후 <strong>[🗑️ 종료 후 일괄 파기]</strong> 버튼을 눌러 개인정보를 영구 삭제하세요.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 1. 현장 측정 도구 (4대 인터랙티브 측정기: 15초 심박수 · 메트로놈 · 4단계 말하기 테스트 · RIR 판정기) -->
+<div class="modal-backdrop" id="field-tools-modal">
+  <div class="modal-box" style="max-width:660px;">
+    <div class="modal-header">
+      <h3>⏱️ 학교 현장 과학적 측정기 (심박수 · 메트로놈 · 말하기 · RIR)</h3>
+      <button class="modal-close" onclick="stopAllAudioTools(); closeModal('field-tools-modal')">×</button>
+    </div>
+
+    <div class="tools-grid">
+      <!-- 측정기 1: 15초 심박수 측정기 -->
+      <div class="tool-card">
+        <div>
+          <div style="font-size:13.5px; font-weight:800; color:#f472b6; margin-bottom:3px;">💓 1. 15초 심박수 측정기</div>
+          <p style="font-size:11.5px; color:var(--text-sub);">운동 직후 손목(요골동맥)을 짚고 15초간 맥박 수를 셉니다.</p>
+          <div class="timer-display" id="hr-timer-disp">15.0</div>
+          <div style="display:flex; gap:6px; margin-bottom:8px;">
+            <button type="button" class="btn btn-pink" style="flex:1;" onclick="startHrTimer()">▶ 15초 시작</button>
+            <button type="button" class="btn btn-ghost" onclick="resetHrTimer()">↺</button>
+          </div>
+          <input type="number" id="hr-15s-count" placeholder="15초간 센 맥박 수 입력 (예: 40)" oninput="calcHr15s()">
+        </div>
+        <div class="tool-result-box">
+          <span id="hr-15s-result" style="font-weight:700; color:#34d399;">측정 대기 중 (입력 시 ×4 자동 환산)</span>
+          <button type="button" class="copy-mini-btn" onclick="copyToolText('hr')">📋 복사</button>
+        </div>
+      </div>
+
+      <!-- 측정기 2: 협응·민첩성 메트로놈 -->
+      <div class="tool-card">
+        <div>
+          <div style="font-size:13.5px; font-weight:800; color:#60a5fa; margin-bottom:3px;">🎵 2. 협응·민첩성 메트로놈</div>
+          <p style="font-size:11.5px; color:var(--text-sub);">래더 스텝·점프 리듬 훈련 시 박자에 맞춰 동작 속도를 통제합니다.</p>
+          <div class="timer-display" id="metro-bpm-disp" style="color:#60a5fa;">100 <span style="font-size:14px;">BPM</span></div>
+          <input type="range" id="metro-slider" min="60" max="180" step="5" value="100" oninput="updateMetroBpm(this.value)" style="margin-bottom:8px;">
+          <button type="button" class="btn btn-primary" id="metro-toggle-btn" style="width:100%;" onclick="toggleMetronome()">▶ 박자 소리 시작</button>
+        </div>
+        <div class="tool-result-box">
+          <span id="metro-result-txt" style="color:#93c5fd;">설정 템포: <strong>100 BPM</strong></span>
+          <button type="button" class="copy-mini-btn" onclick="copyToolText('metro')">📋 복사</button>
+        </div>
+      </div>
+
+      <!-- 측정기 3: 4단계 말하기 테스트 판정기 -->
+      <div class="tool-card">
+        <div>
+          <div style="font-size:13.5px; font-weight:800; color:#fde047; margin-bottom:3px;">🗣️ 3. 말하기 테스트(Talk Test) 판정기</div>
+          <div class="talk-prompt-box">
+            <strong>[측정 방법]</strong> 좋아하는 노래 구절을 흥얼거리거나, <strong>1~15까지 소리 내어 세어본 뒤</strong> 아래 상태를 터치하세요.
+          </div>
+          <div class="talk-btn-grid">
+            <button type="button" class="seg-btn" id="talk-btn-1" onclick="selectTalkStage(1)">
+              <strong>① 노래 가능</strong><br><span style="font-size:10px; opacity:0.85;">한 호흡에 1~15 완주</span>
+            </button>
+            <button type="button" class="seg-btn" id="talk-btn-2" onclick="selectTalkStage(2)">
+              <strong>② 한 문장 완결</strong><br><span style="font-size:10px; opacity:0.85;">중간 1번 숨고름(1~15)</span>
+            </button>
+            <button type="button" class="seg-btn" id="talk-btn-3" onclick="selectTalkStage(3)">
+              <strong>③ 2~3단어 끊김</strong><br><span style="font-size:10px; opacity:0.85;">숫자 3~4개마다 숨참</span>
+            </button>
+            <button type="button" class="seg-btn" id="talk-btn-4" onclick="selectTalkStage(4)">
+              <strong>④ 1단어만 발화</strong><br><span style="font-size:10px; opacity:0.85;">숫자 1~2개 겨우 말함</span>
+            </button>
+          </div>
+        </div>
+        <div class="tool-result-box">
+          <span id="talk-result-txt">위 4가지 상태 중 하나를 선택하세요.</span>
+          <button type="button" class="copy-mini-btn" onclick="copyToolText('talk')">📋 복사</button>
+        </div>
+      </div>
+
+      <!-- 측정기 4: RIR (여유 반복 횟수) 판정기 -->
+      <div class="tool-card">
+        <div>
+          <div style="font-size:13.5px; font-weight:800; color:#c4b5fd; margin-bottom:3px;">🔢 4. RIR (여유 반복 횟수) 판정기</div>
+          <p style="font-size:11.5px; color:var(--text-sub);">근력 세트 직후 <strong>"바른 자세로 몇 개 더 할 수 있었는가?"</strong>를 선택하세요.</p>
+          <div class="rir-btn-grid">
+            <button type="button" class="seg-btn center-txt" id="rir-btn-4" onclick="selectRirStage(4)"><strong>4+</strong><br><span style="font-size:9.5px;">여유많음</span></button>
+            <button type="button" class="seg-btn center-txt" id="rir-btn-3" onclick="selectRirStage(3)"><strong>3</strong><br><span style="font-size:9.5px;">3개여유</span></button>
+            <button type="button" class="seg-btn center-txt" id="rir-btn-2" onclick="selectRirStage(2)"><strong>2</strong><br><span style="font-size:9.5px;">2개여유</span></button>
+            <button type="button" class="seg-btn center-txt" id="rir-btn-1" onclick="selectRirStage(1)"><strong>1</strong><br><span style="font-size:9.5px;">1개여유</span></button>
+            <button type="button" class="seg-btn center-txt" id="rir-btn-0" onclick="selectRirStage(0)"><strong>0</strong><br><span style="font-size:9.5px;">한계점</span></button>
+          </div>
+        </div>
+        <div class="tool-result-box">
+          <span id="rir-result-txt">세트 직후 남은 여유 개수를 터치하세요.</span>
+          <button type="button" class="copy-mini-btn" onclick="copyToolText('rir')">📋 복사</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2. 학생 비밀번호 인증 -->
+<div class="modal-backdrop" id="student-auth-modal">
+  <div class="modal-box" style="max-width:410px;">
+    <div class="modal-header">
+      <h3 id="auth-modal-title">🔒 본인 확인</h3>
+      <button class="modal-close" onclick="closeModal('student-auth-modal')">×</button>
+    </div>
+    <p style="font-size:13px; color:var(--text-sub); margin-bottom:12px;">설정하신 <strong>숫자 4자리 비밀번호</strong>를 입력하세요.</p>
+    <form onsubmit="submitStudentAuth(event)">
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>비밀번호 (숫자 4자리)</label>
+        <input type="password" id="student-auth-pin" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="••••" required>
+      </div>
+      <div id="student-auth-error" style="color:#fda4af; font-size:12px; margin-bottom:10px; display:none;">비밀번호가 일치하지 않습니다.</div>
+      <button type="submit" class="btn btn-primary btn-full">입장하기</button>
+    </form>
+  </div>
+</div>
+
+<!-- 3. 교사 관리자 인증 -->
+<div class="modal-backdrop" id="admin-auth-modal">
+  <div class="modal-box" style="max-width:410px;">
+    <div class="modal-header">
+      <h3>👨‍🏫 교사 관리자 모드 인증</h3>
+      <button class="modal-close" onclick="closeModal('admin-auth-modal')">×</button>
+    </div>
+    <p style="font-size:13px; color:var(--text-sub); margin-bottom:12px;">
+      관리자 비밀번호를 입력하면 전체 학생의 <strong>학번·실명·동의 현황 열람, 비식별 연구용 CSV 다운로드, 데이터 파기</strong>가 활성화됩니다.<br>
+      <span style="font-size:12px; color:#34d399;">(초기 기본 비밀번호: <strong>1234</strong>)</span>
+    </p>
+    <form onsubmit="submitAdminAuth(event)">
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>교사 관리자 비밀번호</label>
+        <input type="password" id="admin-auth-pin" maxlength="8" placeholder="비밀번호 입력" required>
+      </div>
+      <div id="admin-auth-error" style="color:#fda4af; font-size:12px; margin-bottom:10px; display:none;">비밀번호가 올바르지 않습니다.</div>
+      <button type="submit" class="btn btn-green btn-full">관리자 모드 열기</button>
+    </form>
+  </div>
+</div>
+
+<!-- 4. 건강체력 등록/수정 모달 (3중 분리 동의 + 보호자 확인 포함) -->
+<div class="modal-backdrop" id="health-form-modal">
+  <div class="modal-box" style="max-width:640px;">
+    <div class="modal-header">
+      <h3 id="h-modal-title">➕ 건강체력 학생 등록 (PAPS 5대 영역)</h3>
+      <button class="modal-close" onclick="closeModal('health-form-modal')">×</button>
+    </div>
+    <form onsubmit="saveHealthStudentForm(event)">
+      <input type="hidden" id="h-edit-id">
+      <div class="form-grid">
+        <div class="form-group full" id="h-join-group" style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); padding:9px 11px; border-radius:8px;">
+          <label style="color:#fbbf24;">🔐 학교 가입 인증코드 *</label>
+          <input type="text" id="h-join-code" maxlength="6" placeholder="선생님이 안내한 가입코드 입력">
+        </div>
+        <div class="form-group full" id="h-loginid-group">
+          <label>공개 아이디 (ID) * — 메인 화면 카드 표시 별칭 (실명 비공개)</label>
+          <input type="text" id="h-stu-loginid" placeholder="예: step_runner01" required>
+        </div>
+        <div class="form-group"><label>학번 * (교사 확인용)</label><input type="text" id="h-stu-num" placeholder="예: 10315" required></div>
+        <div class="form-group"><label>실명 * (교사 확인용)</label><input type="text" id="h-stu-name" placeholder="예: 김민수" required></div>
+        <div class="form-group">
+          <label>학교급 / 학년 * (연령별 기준 & 안전 모드 자동 적용)</label>
+          <select id="h-stu-grade" onchange="updateHealthFormHints(); toggleGuardianBox('h');">
+            <option value="E5">초등학교 5학년 (만 14세 미만 · 안전 모드)</option>
+            <option value="E6">초등학교 6학년 (만 14세 미만 · 안전 모드)</option>
+            <option value="M1">중학교 1학년 (만 14세 미만 · 안전 모드)</option>
+            <option value="M2">중학교 2학년 (만 14세 미만 · 안전 모드)</option>
+            <option value="M3">중학교 3학년 (성장기 안전 모드)</option>
+            <option value="H1" selected>고등학교 1학년</option>
+            <option value="H2">고등학교 2학년</option>
+            <option value="H3">고등학교 3학년</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>성별 * / 반 정보</label>
+          <div style="display:flex; gap:6px;">
+            <select id="h-stu-gender" onchange="autoCalcBodyComp('h')"><option value="M">남학생</option><option value="F">여학생</option></select>
+            <input type="text" id="h-stu-class" placeholder="예: 1학년 3반">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>키 (cm) * · 몸무게 (kg) *</label>
+          <div style="display:flex; gap:6px;">
+            <input type="number" step="0.1" id="h-stu-height" placeholder="키(cm)" oninput="autoCalcBodyComp('h')" required>
+            <input type="number" step="0.1" id="h-stu-weight" placeholder="몸무게(kg)" oninput="autoCalcBodyComp('h')" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>안정시 심박수 (bpm) — 15초 측정×4</label>
+          <input type="number" id="h-stu-resthr" value="70" min="40" max="120" required>
+        </div>
+        <div class="form-group full" id="h-pin-group">
+          <label>본인 확인 비밀번호 (숫자 4자리) *</label>
+          <input type="password" id="h-stu-pin" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="예: 1234">
+        </div>
+
+        <div class="form-group full" style="background:rgba(236,72,153,0.06); border:1px solid rgba(236,72,153,0.25); padding:12px; border-radius:8px;">
+          <label style="color:#f472b6; margin-bottom:8px;">📏 PAPS 5대 영역 측정 종목 선택 및 기록 입력 (1~5등급 자동 산출)</label>
+          <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:8px; margin-bottom:8px;">
+            <div>
+              <label>1. 심폐지구력 측정 종목</label>
+              <select id="h-ev-cardio" onchange="updateHealthFormHints()">
+                <option value="shuttle">왕복오래달리기 (20m · 회)</option>
+                <option value="run_walk">오래달리기-걷기 (초)</option>
+                <option value="step">스텝검사 (PEI · 점)</option>
+              </select>
+            </div>
+            <div><label id="h-lbl-cardio">기록 (회)</label><input type="number" step="0.1" id="h-val-cardio" required></div>
+
+            <div>
+              <label>2. 유연성 측정 종목</label>
+              <select id="h-ev-flex" onchange="updateHealthFormHints()">
+                <option value="sit_reach">앉아윗몸앞으로굽히기 (cm)</option>
+                <option value="comp_flex">종합유연성검사 (점)</option>
+              </select>
+            </div>
+            <div><label id="h-lbl-flex">기록 (cm)</label><input type="number" step="0.1" id="h-val-flex" required></div>
+
+            <div>
+              <label>3. 근력·근지구력 측정 종목</label>
+              <select id="h-ev-strength" onchange="updateHealthFormHints()">
+                <option value="pushup">(무릎대고) 팔굽혀펴기 (회)</option>
+                <option value="curlup">윗몸말아올리기 (회)</option>
+                <option value="grip">악력 (kg)</option>
+              </select>
+            </div>
+            <div><label id="h-lbl-strength">기록 (회)</label><input type="number" step="0.1" id="h-val-strength" required></div>
+
+            <div>
+              <label>4. 순발력 측정 종목 (운동체력 자동 연계)</label>
+              <select id="h-ev-power" onchange="updateHealthFormHints()">
+                <option value="longjump">제자리멀리뛰기 (cm)</option>
+                <option value="run50">50m 달리기 (초)</option>
+              </select>
+            </div>
+            <div><label id="h-lbl-power">기록 (cm)</label><input type="number" step="0.1" id="h-val-power" required></div>
+          </div>
+
+          <div style="background:rgba(11,15,25,0.65); padding:9px 11px; border-radius:8px; border:1px solid var(--card-border);">
+            <div style="font-size:12px; font-weight:700; color:#93c5fd; margin-bottom:6px;">5. 신체구성 자동 산출 (키·몸무게 입력 시 자동 계산 · 인바디 측정 시 수정 가능)</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+              <div><label>체질량지수 BMI (kg/m² · 자동)</label><input type="number" step="0.1" id="h-val-bmi" readonly></div>
+              <div><label>체지방률 %BF (% · <span id="h-bf-tag">BMI 기반 추정치</span>)</label><input type="number" step="0.1" id="h-val-bf" oninput="document.getElementById('h-bf-tag').textContent='직접 입력(인바디)'"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group full" id="h-consent-section">
+          <div class="consent-wrapper">
+            <div class="consent-header">
+              <span>🛡️ 개인정보 수집·이용 및 연구 활용 동의 (개인정보 보호법 준수)</span>
+              <span style="font-size:11px; color:#34d399;">보유기간: 해당 학년도 종료 시 영구 파기</span>
+            </div>
+            <div class="consent-scroll">
+              <strong>1. 일반 개인정보 수집·이용 안내 (법 제15조)</strong><br>
+              • 수집 항목: 학번, 성명, 학년·반, 성별 / 수집 목적: 체육 수업 운영, 본인 확인 및 수행평가 관리<br>
+              <strong>2. 민감정보(건강·신체 정보) 별도 수집·이용 안내 (법 제23조)</strong><br>
+              • 수집 항목: 키, 몸무게, BMI, 체지방률, 심박수, PAPS 측정 기록 및 운동일지 / 수집 목적: 개인 맞춤형 트레이닝 강도 처방 및 체력 향상도 분석<br>
+              <strong>3. 연구 활용 및 교육 효과 분석 안내 (선택 동의)</strong><br>
+              • 수집된 체력 변화 및 자기주도 운동일지 데이터를 개인을 알아볼 수 없는 형태(비식별 코드 P001 등)로 변환하여 <strong>연구 활용 및 교육 효과 분석</strong>에 사용하는 것에 관한 사항입니다. 선택 동의를 거부하셔도 수업 및 시스템 이용에는 아무런 불이익이 없습니다.<br>
+              <strong>4. 보유·이용 기간 및 동의 거부권</strong><br>
+              • 보유 기간: 해당 학년도 수업 및 교육 효과 분석 종료 시까지 보관 후 즉시 영구 파기합니다. 귀하는 동의를 거부할 권리가 있으나, 필수 동의 거부 시 프로그램 가입 및 맞춤형 처방 제공이 제한됩니다.
+            </div>
+            <label class="consent-check-row">
+              <input type="checkbox" id="h-consent-general">
+              <span><strong>[필수 1]</strong> 위 일반 개인정보(학번·성명·학년·성별) 수집·이용에 동의합니다.</span>
+            </label>
+            <label class="consent-check-row">
+              <input type="checkbox" id="h-consent-sensitive">
+              <span><strong>[필수 2]</strong> 위 민감정보(신체·체력·심박수 측정 기록) 수집·이용에 별도 동의합니다.</span>
+            </label>
+            <label class="consent-check-row">
+              <input type="checkbox" id="h-consent-research">
+              <span><strong>[선택]</strong> 개인을 식별할 수 없는 비식별 코드(P001 등) 형태로 변환하여 <strong>연구 활용 및 교육 효과 분석</strong>에 사용하는 것에 동의합니다.</span>
+            </label>
+            <div class="guardian-box" id="h-guardian-box" style="display:none;">
+              <div style="font-size:12px; font-weight:700; color:#fde047; margin-bottom:6px;">👨‍👩‍👧 만 14세 미만 아동 법정대리인(보호자) 동의 확인 (법 제22조의2)</div>
+              <label class="consent-check-row" style="margin-bottom:6px;">
+                <input type="checkbox" id="h-consent-guardian">
+                <span>가정통신문(e알리미) 등을 통해 법정대리인(보호자)의 사전 동의를 받았음을 확인합니다.</span>
+              </label>
+              <input type="text" id="h-guardian-name" placeholder="법정대리인(보호자) 성함 입력 (예: 김철수)">
+            </div>
+          </div>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-pink btn-full">동의 확인 및 PAPS 1~5등급 산출</button>
+    </form>
+  </div>
+</div>
+
+<!-- 5. 운동체력 등록/수정 모달 (3중 분리 동의 + 보호자 확인 포함) -->
+<div class="modal-backdrop" id="skill-form-modal">
+  <div class="modal-box" style="max-width:620px;">
+    <div class="modal-header">
+      <h3 id="s-modal-title">➕ 운동체력 학생 등록</h3>
+      <button class="modal-close" onclick="closeModal('skill-form-modal')">×</button>
+    </div>
+    <form onsubmit="saveSkillStudentForm(event)">
+      <input type="hidden" id="s-edit-id">
+      <div class="form-grid">
+        <div class="form-group full" id="s-join-group" style="background:rgba(245,158,11,0.08); border:1px solid rgba(245,158,11,0.3); padding:9px 11px; border-radius:8px;">
+          <label style="color:#fbbf24;">🔐 학교 가입 인증코드 *</label>
+          <input type="text" id="s-join-code" maxlength="6" placeholder="선생님이 안내한 가입코드 입력">
+        </div>
+        <div class="form-group full" id="s-loginid-group">
+          <label>공개 아이디 (ID) * — 메인 화면 카드 표시 별칭</label>
+          <input type="text" id="s-stu-loginid" placeholder="예: striker_07" required>
+        </div>
+        <div class="form-group"><label>학번 * (교사 확인용)</label><input type="text" id="s-stu-num" required></div>
+        <div class="form-group"><label>실명 * (교사 확인용)</label><input type="text" id="s-stu-name" required></div>
+        <div class="form-group">
+          <label>학교급 / 학년 *</label>
+          <select id="s-stu-grade" onchange="toggleGuardianBox('s')">
+            <option value="E5">초등학교 5학년 (만 14세 미만)</option><option value="E6">초등학교 6학년 (만 14세 미만)</option>
+            <option value="M1">중학교 1학년 (만 14세 미만)</option><option value="M2">중학교 2학년 (만 14세 미만)</option>
+            <option value="M3">중학교 3학년</option>
+            <option value="H1" selected>고등학교 1학년</option><option value="H2">고등학교 2학년</option><option value="H3">고등학교 3학년</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>성별 * / 반 정보</label>
+          <div style="display:flex; gap:6px;">
+            <select id="s-stu-gender"><option value="M">남학생</option><option value="F">여학생</option></select>
+            <input type="text" id="s-stu-class" placeholder="예: 1학년 3반">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>체중 (kg) * · 안정시 심박수 (bpm) *</label>
+          <div style="display:flex; gap:6px;">
+            <input type="number" step="0.1" id="s-stu-weight" value="65" required>
+            <input type="number" id="s-stu-resthr" value="70" required>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>희망 스포츠 종목 선택 *</label>
+          <select id="s-stu-sport" onchange="toggleCustomRatioInputs()">
+            <option value="sprint">육상 단거리 (순발력·스피드 중심)</option>
+            <option value="soccer" selected>축구 (민첩성·순발력·협응성)</option>
+            <option value="basketball">농구 (순발력·민첩성·협응성)</option>
+            <option value="volleyball">배구 (순발력·반응시간·민첩성)</option>
+            <option value="badminton">배드민턴 (민첩성·반응시간·협응성)</option>
+            <option value="taekwondo">태권도 (순발력·평형성·반응시간)</option>
+            <option value="marathon">마라톤/장거리 (심폐지구력 병행형)</option>
+            <option value="custom">나만의 종목 (체력 요소 비율 직접 입력)</option>
+          </select>
+        </div>
+        <div class="form-group full" id="s-custom-ratios-box" style="display:none; background:rgba(59,130,246,0.08); padding:10px; border-radius:8px;">
+          <label style="color:#93c5fd;">🎯 나만의 종목 체력 요소 비율 입력 (합계 100% 권장)</label>
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:6px;">
+            <div><label>순발력(%)</label><input type="number" id="cr-power" value="25"></div>
+            <div><label>민첩성(%)</label><input type="number" id="cr-agility" value="25"></div>
+            <div><label>스피드(%)</label><input type="number" id="cr-speed" value="20"></div>
+            <div><label>평형성(%)</label><input type="number" id="cr-balance" value="10"></div>
+            <div><label>협응성(%)</label><input type="number" id="cr-coordination" value="10"></div>
+            <div><label>반응시간(%)</label><input type="number" id="cr-reaction" value="10"></div>
+          </div>
+        </div>
+        <div class="form-group full" id="s-pin-group">
+          <label>본인 확인 비밀번호 (숫자 4자리) *</label>
+          <input type="password" id="s-stu-pin" maxlength="4" pattern="[0-9]{4}" inputmode="numeric" placeholder="예: 1234">
+        </div>
+
+        <div class="form-group full" id="s-consent-section">
+          <div class="consent-wrapper">
+            <div class="consent-header">
+              <span>🛡️ 개인정보 수집·이용 및 연구 활용 동의 (개인정보 보호법 준수)</span>
+              <span style="font-size:11px; color:#34d399;">보유기간: 해당 학년도 종료 시 영구 파기</span>
+            </div>
+            <div class="consent-scroll">
+              <strong>1. 일반 개인정보 수집·이용 안내 (법 제15조)</strong><br>
+              • 수집 항목: 학번, 성명, 학년·반, 성별 / 수집 목적: 체육 수업 운영, 본인 확인 및 수행평가 관리<br>
+              <strong>2. 민감정보(건강·신체 정보) 별도 수집·이용 안내 (법 제23조)</strong><br>
+              • 수집 항목: 체중, 안정시 심박수, 경기 체력 측정 기록 및 운동일지 / 수집 목적: 종목별 맞춤형 트레이닝 처방 및 수행 능력 변화 추적<br>
+              <strong>3. 연구 활용 및 교육 효과 분석 안내 (선택 동의)</strong><br>
+              • 수집된 체력 변화 및 자기주도 운동일지 데이터를 개인을 알아볼 수 없는 형태(비식별 코드 P001 등)로 변환하여 <strong>연구 활용 및 교육 효과 분석</strong>에 사용하는 것에 관한 사항입니다. 선택 동의를 거부하셔도 수업 및 시스템 이용에는 아무런 불이익이 없습니다.
+            </div>
+            <label class="consent-check-row">
+              <input type="checkbox" id="s-consent-general">
+              <span><strong>[필수 1]</strong> 위 일반 개인정보(학번·성명·학년·성별) 수집·이용에 동의합니다.</span>
+            </label>
+            <label class="consent-check-row">
+              <input type="checkbox" id="s-consent-sensitive">
+              <span><strong>[필수 2]</strong> 위 민감정보(신체·체력 측정 기록) 수집·이용에 별도 동의합니다.</span>
+            </label>
+            <label class="consent-check-row">
+              <input type="checkbox" id="s-consent-research">
+              <span><strong>[선택]</strong> 개인을 식별할 수 없는 비식별 코드(P001 등) 형태로 변환하여 <strong>연구 활용 및 교육 효과 분석</strong>에 사용하는 것에 동의합니다.</span>
+            </label>
+            <div class="guardian-box" id="s-guardian-box" style="display:none;">
+              <div style="font-size:12px; font-weight:700; color:#fde047; margin-bottom:6px;">👨‍👩‍👧 만 14세 미만 아동 법정대리인(보호자) 동의 확인 (법 제22조의2)</div>
+              <label class="consent-check-row" style="margin-bottom:6px;">
+                <input type="checkbox" id="s-consent-guardian">
+                <span>가정통신문(e알리미) 등을 통해 법정대리인(보호자)의 사전 동의를 받았음을 확인합니다.</span>
+              </label>
+              <input type="text" id="s-guardian-name" placeholder="법정대리인(보호자) 성함 입력 (예: 김철수)">
+            </div>
+          </div>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">동의 확인 및 경기 체력 분석 시작</button>
+    </form>
+  </div>
+</div>
+
+<!-- 6. 비밀번호 / 가입코드 변경 모달 -->
+<div class="modal-backdrop" id="reset-pin-modal">
+  <div class="modal-box" style="max-width:410px;">
+    <div class="modal-header">
+      <h3 id="reset-pin-title">🔑 설정 변경</h3>
+      <button class="modal-close" onclick="closeModal('reset-pin-modal')">×</button>
+    </div>
+    <p id="reset-pin-desc" style="font-size:13px; color:var(--text-sub); margin-bottom:12px;"></p>
+    <form onsubmit="submitResetPin(event)">
+      <div class="form-group" style="margin-bottom:12px;">
+        <label id="reset-pin-label">새 값 입력</label>
+        <input type="text" id="new-pin-input" maxlength="8" required>
+      </div>
+      <button type="submit" class="btn btn-amber btn-full">적용하기</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  /* ==================== 0. SUPABASE 연결 설정 ==================== */
+  const SUPABASE_URL = "https://rstmtowmvuoneuvixzzw.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_e2gBeAVxNRvXua13YCgRvw_NI3OUwJU";
+
+  const isCloud = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+  const sb = isCloud ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+  /* ==================== 1. STATE & CONSTANTS ==================== */
+  let currentTopMode = 'health';
+  let isAdmin = false, adminPinHash = '', cachedJoinCode = '2026';
+
+  let healthList = [], currentHealthStu = null, currentHealthAuthHash = '', activeHealthDomain = 'cardio';
+  let skillList = [], currentSkillStu = null, currentSkillAuthHash = '';
+
+  let pendingAuthMode = 'health', pendingAuthId = null, resetTargetType = 'joincode';
+
+  const gradeInfoMap = {
+    E5: { label: "초5", age: 11, stage: "elem", isYouth: true, under14: true },
+    E6: { label: "초6", age: 12, stage: "elem", isYouth: true, under14: true },
+    M1: { label: "중1", age: 13, stage: "mid", isYouth: true, under14: true },
+    M2: { label: "중2", age: 14, stage: "mid", isYouth: true, under14: true },
+    M3: { label: "중3", age: 15, stage: "mid", isYouth: true, under14: false },
+    H1: { label: "고1", age: 16, stage: "high", isYouth: false, under14: false },
+    H2: { label: "고2", age: 17, stage: "high", isYouth: false, under14: false },
+    H3: { label: "고3", age: 18, stage: "high", isYouth: false, under14: false }
+  };
+
+  function switchGuideTab(who) {
+    document.getElementById('guide-tab-student').classList.toggle('active', who === 'student');
+    document.getElementById('guide-tab-teacher').classList.toggle('active', who === 'teacher');
+    document.getElementById('guide-body-student').style.display = who === 'student' ? 'block' : 'none';
+    document.getElementById('guide-body-teacher').style.display = who === 'teacher' ? 'block' : 'none';
+  }
+
+  function toggleGuardianBox(prefix) {
+    const gCode = document.getElementById(`${prefix}-stu-grade`).value;
+    const isUnder14 = (gradeInfoMap[gCode] || gradeInfoMap.H1).under14;
+    document.getElementById(`${prefix}-guardian-box`).style.display = isUnder14 ? 'block' : 'none';
+  }
+
+  const papsEventMeta = {
+    cardio: {
+      name: "심폐지구력",
+      events: {
+        shuttle: { name: "왕복오래달리기", unit: "회", dir: "max" },
+        run_walk: { name: "오래달리기-걷기", unit: "초", dir: "min" },
+        step: { name: "스텝검사(PEI)", unit: "점", dir: "max" }
+      }
+    },
+    flex: {
+      name: "유연성",
+      events: {
+        sit_reach: { name: "앉아윗몸앞으로굽히기", unit: "cm", dir: "max" },
+        comp_flex: { name: "종합유연성검사", unit: "점", dir: "max" }
+      }
+    },
+    strength: {
+      name: "근력·근지구력",
+      events: {
+        pushup: { name: "팔굽혀펴기", unit: "회", dir: "max" },
+        curlup: { name: "윗몸말아올리기", unit: "회", dir: "max" },
+        grip: { name: "악력", unit: "kg", dir: "max" }
+      }
+    },
+    power: {
+      name: "순발력",
+      events: {
+        longjump: { name: "제자리멀리뛰기", unit: "cm", dir: "max" },
+        run50: { name: "50m 달리기", unit: "초", dir: "min" }
+      }
+    },
+    bmi: {
+      name: "신체구성",
+      events: {
+        bmi: { name: "체질량지수(BMI)", unit: "kg/m²", dir: "bmi" }
+      }
+    }
+  };
+
+  function getPapsCutoffs(gradeCode, gender, domain, evKey) {
+    const gIdx = ['E5','E6','M1','M2','M3','H1','H2','H3'].indexOf(gradeCode);
+    const ratio = (gIdx >= 0 ? gIdx : 5) / 7;
+    const isM = gender === 'M';
+    if (evKey === 'shuttle') {
+      const lo = isM ? [52, 39, 27, 17] : [36, 26, 18, 11];
+      const hi = isM ? [74, 58, 42, 27] : [48, 36, 25, 16];
+      return lo.map((v, i) => Math.round(v + (hi[i] - v) * ratio));
+    }
+    if (evKey === 'run_walk') {
+      if (gradeCode === 'E5' || gradeCode === 'E6') return isM ? [245, 275, 315, 360] : [270, 305, 345, 395];
+      return isM ? [375, 425, 485, 555] : [330, 375, 430, 495];
+    }
+    if (evKey === 'step') return [72, 63, 55, 48];
+    if (evKey === 'sit_reach') {
+      const base = isM ? [14, 9, 4, -2] : [19, 14, 8, 2];
+      return base.map(v => Math.round(v + ratio * 3));
+    }
+    if (evKey === 'comp_flex') return [8, 6, 4, 2];
+    if (evKey === 'pushup') {
+      const lo = isM ? [22, 15, 9, 4] : [14, 9, 5, 2];
+      const hi = isM ? [38, 27, 17, 9] : [22, 15, 9, 4];
+      return lo.map((v, i) => Math.round(v + (hi[i] - v) * ratio));
+    }
+    if (evKey === 'curlup') {
+      const lo = isM ? [32, 22, 13, 6] : [24, 16, 9, 4];
+      const hi = isM ? [54, 40, 26, 15] : [40, 28, 17, 9];
+      return lo.map((v, i) => Math.round(v + (hi[i] - v) * ratio));
+    }
+    if (evKey === 'grip') {
+      const lo = isM ? [24, 19, 15, 11] : [19, 15, 12, 9];
+      const hi = isM ? [44, 37, 30, 23] : [28, 23, 18, 14];
+      return lo.map((v, i) => Math.round((v + (hi[i] - v) * ratio) * 10) / 10);
+    }
+    if (evKey === 'longjump') {
+      const lo = isM ? [175, 158, 140, 122] : [152, 136, 120, 104];
+      const hi = isM ? [242, 222, 198, 172] : [182, 164, 144, 124];
+      return lo.map((v, i) => Math.round(v + (hi[i] - v) * ratio));
+    }
+    if (evKey === 'run50') {
+      const lo = isM ? [8.4, 9.0, 9.7, 10.5] : [9.2, 9.9, 10.7, 11.6];
+      const hi = isM ? [6.9, 7.4, 8.0, 8.8] : [8.3, 8.9, 9.6, 10.5];
+      return lo.map((v, i) => Math.round((v + (hi[i] - v) * ratio) * 10) / 10);
+    }
+    return [70, 55, 40, 25];
+  }
+
+  function calcHealthGrade(gradeCode, gender, domain, evKey, rawVal) {
+    const v = parseFloat(rawVal);
+    if (domain === 'bmi') {
+      if (v >= 18.5 && v <= 22.9) return { grade: 1, nextGoal: 21.0, goalLabel: "정상(1등급) 최적 체성분 유지" };
+      if ((v >= 17.5 && v < 18.5) || (v > 22.9 && v <= 24.9)) return { grade: 2, nextGoal: 22.0, goalLabel: "정상 구간 진입 목표 (22.0)" };
+      if ((v >= 16.0 && v < 17.5) || (v >= 25.0 && v <= 29.9)) return { grade: 3, nextGoal: 24.5, goalLabel: "과체중 이하 진입 목표 (24.5)" };
+      return { grade: 4, nextGoal: 28.0, goalLabel: "단계적 체중·체지방 관리 목표" };
+    }
+    const cuts = getPapsCutoffs(gradeCode, gender, domain, evKey);
+    const meta = papsEventMeta[domain].events[evKey];
+    if (meta.dir === 'max') {
+      const step = domain === 'power' ? 8 : 4;
+      if (v >= cuts[0]) return { grade: 1, nextGoal: Math.round((v + step)*10)/10, goalLabel: `1등급 PR 경신 (${Math.round((v+step)*10)/10}${meta.unit})` };
+      if (v >= cuts[1]) return { grade: 2, nextGoal: cuts[0], goalLabel: `1등급 목표 (${cuts[0]}${meta.unit})` };
+      if (v >= cuts[2]) return { grade: 3, nextGoal: cuts[1], goalLabel: `2등급 목표 (${cuts[1]}${meta.unit})` };
+      if (v >= cuts[3]) return { grade: 4, nextGoal: cuts[2], goalLabel: `3등급 목표 (${cuts[2]}${meta.unit})` };
+      return { grade: 5, nextGoal: cuts[3], goalLabel: `4등급 목표 (${cuts[3]}${meta.unit})` };
+    } else {
+      if (v <= cuts[0]) return { grade: 1, nextGoal: Math.round((v - 0.2)*10)/10, goalLabel: `1등급 PR 경신 (${Math.round((v-0.2)*10)/10}초)` };
+      if (v <= cuts[1]) return { grade: 2, nextGoal: cuts[0], goalLabel: `1등급 목표 (${cuts[0]}초)` };
+      if (v <= cuts[2]) return { grade: 3, nextGoal: cuts[1], goalLabel: `2등급 목표 (${cuts[1]}초)` };
+      if (v <= cuts[3]) return { grade: 4, nextGoal: cuts[2], goalLabel: `3등급 목표 (${cuts[2]}초)` };
+      return { grade: 5, nextGoal: cuts[3], goalLabel: `4등급 목표 (${cuts[3]}초)` };
+    }
+  }
+
+  const sportPresets = {
+    sprint: { name: "육상 단거리", ratios: { power: 40, speed: 35, agility: 10, reaction: 10, coordination: 5, balance: 0 }, note: "출발 반응과 폭발적 지면 반발력(순발력·스피드)이 기록의 75% 이상을 좌우합니다." },
+    soccer: { name: "축구", ratios: { agility: 30, power: 25, speed: 20, coordination: 15, balance: 10, reaction: 0 }, note: "90분간 급감속·방향전환(민첩성)과 스프린트, 볼 컨트롤 협응성이 핵심이며 건강체력(심폐지구력) 병행이 권장됩니다." },
+    basketball: { name: "농구", ratios: { power: 30, agility: 30, coordination: 20, balance: 10, reaction: 10, speed: 0 }, note: "리바운드·점프슛의 수직 순발력과 좁은 코트 내 방향 전환(민첩성) 비중이 높습니다." },
+    volleyball: { name: "배구", ratios: { power: 35, reaction: 25, agility: 20, coordination: 15, balance: 5, speed: 0 }, note: "스파이크·블로킹 점프(순발력)와 강타 수비(반응시간·민첩성)가 핵심입니다." },
+    badminton: { name: "배드민턴", ratios: { agility: 35, reaction: 25, coordination: 20, power: 15, balance: 5, speed: 0 }, note: "전후좌우 스텝 전환(민첩성)과 셔틀콕 타구(눈-손 협응·반응시간)가 승패를 결정합니다." },
+    taekwondo: { name: "태권도", ratios: { power: 30, balance: 25, reaction: 25, agility: 15, coordination: 5, speed: 0 }, note: "외발 지지 상태에서의 연속 발차기(평형성·순발력)와 상대 공격 대응(반응시간)이 중요합니다." },
+    marathon: { name: "마라톤/장거리", ratios: { balance: 35, coordination: 35, power: 15, speed: 15, agility: 0, reaction: 0 }, note: "⚠️ 마라톤·장거리는 건강체력 탭의 [심폐지구력] 훈련이 핵심(70% 이상)이며, 운동체력에서는 주법 효율을 위한 평형·협응·코어를 보완합니다." }
+  };
+
+  const compNames = { power: "순발력", agility: "민첩성", speed: "스피드", balance: "평형성", coordination: "협응성", reaction: "반응시간" };
+  const compColors = { power: "#f43f5e", agility: "#3b82f6", speed: "#f59e0b", balance: "#10b981", coordination: "#8b5cf6", reaction: "#ec4899" };
+
+  /* ==================== 2. HELPERS & LOCAL STORAGE ==================== */
+  async function sha256(t) {
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+    return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
+  }
+  function getTodayStr() { return new Date().toISOString().split('T')[0]; }
+  function round2_5(n) { return Math.max(2.5, Math.round(n / 2.5) * 2.5); }
+
+  function calcKarvonenRange(gradeCode, restHr, minPct, maxPct) {
+    const age = (gradeInfoMap[gradeCode] || gradeInfoMap.H1).age;
+    const maxHr = 220 - age;
+    const hrr = maxHr - (parseInt(restHr) || 70);
+    const lo = Math.round(hrr * minPct + (parseInt(restHr) || 70));
+    const hi = Math.round(hrr * maxPct + (parseInt(restHr) || 70));
+    return `${lo} ~ ${hi} bpm (HRR ${Math.round(minPct*100)}~${Math.round(maxPct*100)}%)`;
+  }
+
+  function autoCalcBodyComp(prefix) {
+    const h = parseFloat(document.getElementById(`${prefix}-stu-height`).value);
+    const w = parseFloat(document.getElementById(`${prefix}-stu-weight`).value);
+    const gCode = document.getElementById(`${prefix}-stu-grade`).value;
+    const gender = document.getElementById(`${prefix}-stu-gender`).value;
+    if (h > 100 && w > 20) {
+      const bmi = Math.round((w / Math.pow(h / 100, 2)) * 10) / 10;
+      const age = (gradeInfoMap[gCode] || gradeInfoMap.H1).age;
+      const sexVal = gender === 'M' ? 1 : 0;
+      const bf = Math.max(4, Math.round(((1.20 * bmi) + (0.23 * age) - (10.8 * sexVal) - 5.4) * 10) / 10);
+      if (prefix === 'h') {
+        document.getElementById('h-val-bmi').value = bmi;
+        document.getElementById('h-val-bf').value = bf;
+        document.getElementById('h-bf-tag').textContent = 'BMI 기반 추정치';
+      }
+    }
+  }
+
+  function updateHealthFormHints() {
+    const gCode = document.getElementById('h-stu-grade').value;
+    const cEv = document.getElementById('h-ev-cardio').value;
+    const fEv = document.getElementById('h-ev-flex').value;
+    const sEv = document.getElementById('h-ev-strength').value;
+    const pEv = document.getElementById('h-ev-power').value;
+
+    const distHint = (gCode === 'E5' || gCode === 'E6') ? '초등 1,000m 초' : '중·고 남1600m/여1200m 초';
+    document.getElementById('h-lbl-cardio').textContent = cEv === 'run_walk' ? `기록 (${distHint})` : `기록 (${papsEventMeta.cardio.events[cEv].unit})`;
+    document.getElementById('h-lbl-flex').textContent = `기록 (${papsEventMeta.flex.events[fEv].unit})`;
+    document.getElementById('h-lbl-strength').textContent = `기록 (${papsEventMeta.strength.events[sEv].unit})`;
+    document.getElementById('h-lbl-power').textContent = `기록 (${papsEventMeta.power.events[pEv].unit})`;
+    autoCalcBodyComp('h');
+  }
+
+  const L_H = 'sut_health_v2', L_S = 'sut_skill_v2', L_ADM = 'sut_adm_v2', L_JOIN = 'sut_join_v2';
+  async function initLocalFallback() {
+    if (!localStorage.getItem(L_ADM)) localStorage.setItem(L_ADM, await sha256("1234"));
+    if (!localStorage.getItem(L_JOIN)) localStorage.setItem(L_JOIN, "2026");
+    const t = getTodayStr(), h0 = await sha256("0000");
+    if (!localStorage.getItem(L_H)) {
+      localStorage.setItem(L_H, JSON.stringify([{
+        id: "h_demo1", login_id: "runner_hs1", student_number: "10315", real_name: "김민수(예시)",
+        grade_class: "1학년 3반", school_grade: "H1", gender: "M", height: 174, weight: 66, rest_hr: 68, pin_hash: h0,
+        consent_data: { generalAgreed: true, sensitiveAgreed: true, researchAgreed: true, agreedAt: t },
+        paps_data: {
+          cardio: { event: "shuttle", value: 48 },
+          flex: { event: "sit_reach", value: 11.5 },
+          strength: { event: "curlup", value: 36 },
+          power: { event: "longjump", value: 215 },
+          bmi: { event: "bmi", value: 21.8, bf: 15.2 }
+        },
+        records: [{ date: t, domain: "cardio", event: "shuttle", value: 48 }],
+        logs: [{ date: t, domain: "cardio", exercise: "[인터벌] 2분 빠른 러닝 + 1분 걷기", plan: "HRR 60~75% (150~170bpm) · 3세트 · 8라운드", actual: "162 bpm (15초 40회), 말하기 2단계(한 문장 완결)", selfEval: "설계근거: ACSM 중강도 유산소 구간 유지", peerEval: "짝(박지훈) 확인: 한 문장 안 끊고 말하며 호흡 안정" }]
+      }]));
+    }
+    if (!localStorage.getItem(L_S)) {
+      localStorage.setItem(L_S, JSON.stringify([{
+        id: "s_demo1", login_id: "striker_07", student_number: "10315", real_name: "김민수(예시)",
+        grade_class: "1학년 3반", school_grade: "H1", gender: "M", sport_type: "soccer", custom_ratios: {},
+        height: 174, weight: 66, rest_hr: 68, pin_hash: h0,
+        consent_data: { generalAgreed: true, sensitiveAgreed: true, researchAgreed: true, agreedAt: t },
+        skill_tests: [{ date: t, testType: "illinois", value: 16.4 }, { date: t, testType: "stork", value: 34 }],
+        logs: [{ date: t, comp: "agility", exercise: "[서킷] 일리노이 방향전환 및 감속 콘 드릴", plan: "기준기록 90~95% 속도 · 3세트 · 6회", actual: "16.1초 주파, Borg CR-10 8점", selfEval: "설계근거: 축구 민첩성(30%) 보완 훈련", peerEval: "짝(박지훈) 스톱워치 측정 완료" }]
+      }]));
+    }
+  }
+
+  /* ==================== 3. DATA & NAVIGATION ==================== */
+  async function refreshCurrentList() {
+    const bar = document.getElementById('sync-status-bar'), txt = document.getElementById('sync-status-text');
+    if (isCloud) {
+      bar.className = 'sync-bar sync-cloud';
+      txt.textContent = '🟢 실시간 클라우드 DB 연동됨 (학생 스마트폰 ↔ 교사 PC 실시간 동기화)';
+      if (currentTopMode === 'health') {
+        const { data } = isAdmin ? await sb.rpc('sut_health_admin_all', { p_admin_hash: adminPinHash }) : await sb.rpc('sut_health_public_list');
+        healthList = data || []; renderHealthGrid();
+      } else {
+        const { data } = isAdmin ? await sb.rpc('sut_skill_admin_all', { p_admin_hash: adminPinHash }) : await sb.rpc('sut_skill_public_list');
+        skillList = data || []; renderSkillGrid();
+      }
+    } else {
+      bar.className = 'sync-bar sync-local';
+      txt.textContent = '🟡 로컬 미리보기 모드 (예시 계정 비번: 0000 / 교사 관리자 비번: 1234)';
+      const rH = JSON.parse(localStorage.getItem(L_H) || '[]');
+      const rS = JSON.parse(localStorage.getItem(L_S) || '[]');
+      healthList = isAdmin ? rH : rH.map(s => ({ id: s.id, login_id: s.login_id, school_grade: s.school_grade }));
+      skillList = isAdmin ? rS : rS.map(s => ({ id: s.id, login_id: s.login_id, school_grade: s.school_grade, sport_type: s.sport_type }));
+      if (currentTopMode === 'health') renderHealthGrid(); else renderSkillGrid();
+    }
+  }
+
+  function switchTopMode(mode) {
+    currentTopMode = mode;
+    document.getElementById('nav-health').className = mode === 'health' ? 'tab-btn active health-mode' : 'tab-btn';
+    document.getElementById('nav-skill').className = mode === 'skill' ? 'tab-btn active skill-mode' : 'tab-btn';
+    document.getElementById('health-wrapper').style.display = mode === 'health' ? 'block' : 'none';
+    document.getElementById('skill-wrapper').style.display = mode === 'skill' ? 'block' : 'none';
+    goHomeCurrentMode();
+  }
+
+  function goHomeCurrentMode() {
+    currentHealthStu = null; currentSkillStu = null;
+    document.getElementById('health-dashboard-view').style.display = 'block';
+    document.getElementById('health-detail-view').style.display = 'none';
+    document.getElementById('skill-dashboard-view').style.display = 'block';
+    document.getElementById('skill-detail-view').style.display = 'none';
+    refreshCurrentList();
+  }
+
+  /* ==================== 4. ADMIN & AUTH ==================== */
+  function handleAdminToggle() {
+    if (isAdmin) { isAdmin = false; adminPinHash = ''; updateAdminUI(); return; }
+    document.getElementById('admin-auth-pin').value = '';
+    document.getElementById('admin-auth-error').style.display = 'none';
+    openModal('admin-auth-modal');
+  }
+  async function submitAdminAuth(e) {
+    e.preventDefault();
+    const h = await sha256(document.getElementById('admin-auth-pin').value.trim());
+    if (isCloud) {
+      const { data } = await sb.rpc('sut_verify_admin', { p_admin_hash: h });
+      if (data && data.ok) { isAdmin = true; adminPinHash = h; cachedJoinCode = data.join_code || '2026'; closeModal('admin-auth-modal'); updateAdminUI(); }
+      else document.getElementById('admin-auth-error').style.display = 'block';
+    } else {
+      if (h === localStorage.getItem(L_ADM)) { isAdmin = true; adminPinHash = h; cachedJoinCode = localStorage.getItem(L_JOIN) || '2026'; closeModal('admin-auth-modal'); updateAdminUI(); }
+      else document.getElementById('admin-auth-error').style.display = 'block';
+    }
+  }
+  function logoutAdmin() { isAdmin = false; adminPinHash = ''; updateAdminUI(); }
+  function updateAdminUI() {
+    const btn = document.getElementById('admin-btn'), tb = document.getElementById('admin-toolbar');
+    document.getElementById('admin-join-code-display').textContent = `가입코드: ${cachedJoinCode}`;
+    if (isAdmin) { btn.classList.add('is-admin'); btn.textContent = '🔓 교사 관리자 ON'; tb.style.display = 'flex'; }
+    else { btn.classList.remove('is-admin'); btn.textContent = '🔒 교사 관리자'; tb.style.display = 'none'; }
+    refreshCurrentList();
+  }
+  function openStudentAuthModal(mode, id, loginId) {
+    pendingAuthMode = mode; pendingAuthId = id;
+    document.getElementById('auth-modal-title').textContent = `🔒 🆔 ${loginId} 본인 확인`;
+    document.getElementById('student-auth-pin').value = '';
+    document.getElementById('student-auth-error').style.display = 'none';
+    openModal('student-auth-modal');
+  }
+  async function submitStudentAuth(e) {
+    e.preventDefault();
+    const h = await sha256(document.getElementById('student-auth-pin').value.trim());
+    if (pendingAuthMode === 'health') {
+      const stu = isCloud ? (await sb.rpc('sut_health_verify', { p_id: pendingAuthId, p_pin_hash: h })).data : JSON.parse(localStorage.getItem(L_H) || '[]').find(s => s.id === pendingAuthId && s.pin_hash === h);
+      if (stu) { closeModal('student-auth-modal'); currentHealthAuthHash = h; openHealthDetail(stu); }
+      else document.getElementById('student-auth-error').style.display = 'block';
+    } else {
+      const stu = isCloud ? (await sb.rpc('sut_skill_verify', { p_id: pendingAuthId, p_pin_hash: h })).data : JSON.parse(localStorage.getItem(L_S) || '[]').find(s => s.id === pendingAuthId && s.pin_hash === h);
+      if (stu) { closeModal('student-auth-modal'); currentSkillAuthHash = h; openSkillDetail(stu); }
+      else document.getElementById('student-auth-error').style.display = 'block';
+    }
+  }
+  function openChangeJoinCodeModal() {
+    resetTargetType = 'joincode';
+    document.getElementById('reset-pin-title').textContent = '🔐 학생 가입 인증코드 변경';
+    document.getElementById('reset-pin-desc').textContent = '변경 즉시 신규 가입 화면에 적용됩니다.';
+    document.getElementById('reset-pin-label').textContent = '새 가입코드';
+    document.getElementById('new-pin-input').value = cachedJoinCode;
+    openModal('reset-pin-modal');
+  }
+  function openChangeAdminPinModal() {
+    resetTargetType = 'admin';
+    document.getElementById('reset-pin-title').textContent = '🔑 교사 관리자 비밀번호 변경';
+    document.getElementById('reset-pin-desc').textContent = '새 관리자 비밀번호(숫자 4자리)를 입력하세요.';
+    document.getElementById('reset-pin-label').textContent = '새 관리자 비밀번호';
+    document.getElementById('new-pin-input').value = '';
+    openModal('reset-pin-modal');
+  }
+  function openResetStudentPin(mode, id, name) {
+    resetTargetType = mode === 'health' ? 'h_stu' : 's_stu';
+    pendingAuthId = id;
+    document.getElementById('reset-pin-title').textContent = `🔑 [${name}] 비밀번호 변경`;
+    document.getElementById('reset-pin-desc').textContent = '숫자 4자리 새 비밀번호를 입력하세요.';
+    document.getElementById('reset-pin-label').textContent = '새 비밀번호 (4자리)';
+    document.getElementById('new-pin-input').value = isAdmin ? '0000' : '';
+    openModal('reset-pin-modal');
+  }
+  async function submitResetPin(e) {
+    e.preventDefault();
+    const val = document.getElementById('new-pin-input').value.trim();
+    if (resetTargetType === 'joincode') {
+      if (isCloud) await sb.rpc('sut_update_setting', { p_admin_hash: adminPinHash, p_key: 'join_code', p_val: val });
+      else localStorage.setItem(L_JOIN, val);
+      cachedJoinCode = val; closeModal('reset-pin-modal'); updateAdminUI();
+    } else if (resetTargetType === 'admin') {
+      const nh = await sha256(val);
+      if (isCloud) await sb.rpc('sut_update_setting', { p_admin_hash: adminPinHash, p_key: 'admin_pin_hash', p_val: nh });
+      else localStorage.setItem(L_ADM, nh);
+      adminPinHash = nh; closeModal('reset-pin-modal'); alert('관리자 비밀번호가 변경되었습니다.');
+    } else {
+      const nh = await sha256(val);
+      if (resetTargetType === 'h_stu') {
+        if (isCloud) await sb.rpc('sut_health_update', { p_id: pendingAuthId, p_auth_hash: isAdmin ? adminPinHash : currentHealthAuthHash, p_is_admin: isAdmin, p_data: { new_pin_hash: nh } });
+        else { const a = JSON.parse(localStorage.getItem(L_H) || '[]'); const i = a.findIndex(x => x.id === pendingAuthId); if (i !== -1) { a[i].pin_hash = nh; localStorage.setItem(L_H, JSON.stringify(a)); } }
+      } else {
+        if (isCloud) await sb.rpc('sut_skill_update', { p_id: pendingAuthId, p_auth_hash: isAdmin ? adminPinHash : currentSkillAuthHash, p_is_admin: isAdmin, p_data: { new_pin_hash: nh } });
+        else { const a = JSON.parse(localStorage.getItem(L_S) || '[]'); const i = a.findIndex(x => x.id === pendingAuthId); if (i !== -1) { a[i].pin_hash = nh; localStorage.setItem(L_S, JSON.stringify(a)); } }
+      }
+      closeModal('reset-pin-modal'); alert(`비밀번호가 [${val}]으로 변경되었습니다.`);
+    }
+  }
+
+  async function purgeAllStudentsData() {
+    if (!isAdmin) return;
+    const msg = "⚠️ [개인정보 보호법 보유기간 만료 파기]\n\n현재 데이터베이스에 저장된 모든 학생의 학번, 실명, 체력 기록 및 일지가 영구 삭제되며 복구할 수 없습니다.\n먼저 CSV 파일로 백업을 완료하셨습니까?\n\n정말로 전체 데이터를 영구 파기하시겠습니까?";
+    if (!confirm(msg)) return;
+    if (isCloud) await sb.rpc('sut_purge_all_data', { p_admin_hash: adminPinHash });
+    else { localStorage.setItem(L_H, '[]'); localStorage.setItem(L_S, '[]'); }
+    goHomeCurrentMode();
+    alert('✅ 모든 학생 개인정보 및 측정 데이터가 영구 파기되었습니다.');
+  }
+
+  /* ==================== 5. HEALTH FITNESS (건강체력) ==================== */
+  function renderHealthGrid() {
+    const q = (document.getElementById('health-search').value || '').trim().toLowerCase();
+    const grid = document.getElementById('health-student-grid');
+    const filtered = healthList.filter(s =>
+      (s.login_id && s.login_id.toLowerCase().includes(q)) ||
+      (isAdmin && ((s.real_name && s.real_name.toLowerCase().includes(q)) || (s.student_number && s.student_number.includes(q))))
+    );
+    document.getElementById('health-count-label').textContent = `등록 계정: ${filtered.length}명`;
+    if (!filtered.length) { grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:32px; color:var(--text-sub); border:1px dashed var(--card-border); border-radius:var(--radius);">표시할 계정이 없습니다.</div>`; return; }
+
+    grid.innerHTML = filtered.map(s => {
+      const gLbl = (gradeInfoMap[s.school_grade] || gradeInfoMap.H1).label;
+      if (!isAdmin) {
+        return `<div class="student-card" onclick="openStudentAuthModal('health','${s.id}','${s.login_id}')">
+          <div><div class="stu-card-top"><div class="stu-id-title">🆔 ${s.login_id}</div><span class="level-badge">${gLbl}</span></div>
+          <div class="privacy-box">🔒 개인정보 보호 중 (학번·실명·등급 비공개)<br>본인 비밀번호 입력 후 맞춤 처방과 일지를 확인하세요.</div></div>
+          <div class="stu-card-footer"><span>건강체력 계정</span><span style="color:#f472b6; font-weight:700;">비번 입력 후 열람 →</span></div></div>`;
+      }
+      const days = new Set((s.logs || []).map(l => l.date)).size;
+      const resOk = s.consent_data?.researchAgreed;
+      const chips = Object.keys(papsEventMeta).map(d => {
+        const item = s.paps_data[d];
+        const res = calcHealthGrade(s.school_grade, s.gender, d, item.event, item.value);
+        return `<span class="event-chip ${res.grade >= 4 ? 'weakest' : (res.grade === 1 ? 'top-grade' : '')}">${papsEventMeta[d].name} <strong>${res.grade}등급</strong></span>`;
+      }).join('');
+      return `<div class="student-card" onclick='openHealthDetail(${JSON.stringify(s).replace(/'/g, "&#39;")})'>
+        <div><div class="stu-card-top"><div><div class="stu-id-title">🆔 ${s.login_id}</div><div class="stu-admin-sub">${s.student_number} ${s.real_name} (${gLbl} · ${s.gender === 'M' ? '남' : '여'})</div></div>
+        <span class="level-badge" style="background:${resOk ? 'rgba(16,185,129,0.2)' : 'rgba(148,163,184,0.2)'}; color:${resOk ? '#34d399' : '#94a3b8'};">${resOk ? '연구동의' : '수업전용'}</span></div>
+        <div class="stu-events-wrap">${chips}</div></div>
+        <div><div class="stu-card-footer"><span>🗓️ 누적 운동일: <strong style="color:#f472b6;">${days}일</strong> (${(s.logs||[]).length}건)</span><span>상세 열람 →</span></div>
+        <div style="display:flex; gap:5px; margin-top:8px;" onclick="event.stopPropagation()">
+          <button class="btn btn-amber" style="flex:1; padding:4px; font-size:11px;" onclick="openResetStudentPin('health','${s.id}','${s.real_name}')">🔑 비번초기화</button>
+          <button class="btn btn-rose" style="padding:4px 8px; font-size:11px;" onclick="deleteHealthStudent('${s.id}','${s.real_name}')">삭제</button>
+        </div></div></div>`;
+    }).join('');
+  }
+
+  function openHealthRegisterModal() {
+    document.getElementById('h-modal-title').textContent = '➕ 건강체력 학생 등록 (PAPS 5대 영역)';
+    document.getElementById('h-edit-id').value = '';
+    document.getElementById('h-loginid-group').style.display = 'block'; document.getElementById('h-stu-loginid').required = true; document.getElementById('h-stu-loginid').value = '';
+    document.getElementById('h-join-group').style.display = isAdmin ? 'none' : 'block'; document.getElementById('h-join-code').required = !isAdmin; document.getElementById('h-join-code').value = '';
+    document.getElementById('h-pin-group').style.display = 'block'; document.getElementById('h-stu-pin').required = true; document.getElementById('h-stu-pin').value = '';
+    document.getElementById('h-consent-section').style.display = 'block';
+    ['h-consent-general','h-consent-sensitive','h-consent-research','h-consent-guardian'].forEach(id => document.getElementById(id).checked = false);
+    document.getElementById('h-guardian-name').value = '';
+    ['num','name','class','height','weight'].forEach(k => document.getElementById(`h-stu-${k}`).value = '');
+    ['cardio','flex','strength','power','bmi','bf'].forEach(k => document.getElementById(`h-val-${k}`).value = '');
+    updateHealthFormHints(); toggleGuardianBox('h');
+    openModal('health-form-modal');
+  }
+
+  function openHealthEditModal() {
+    const s = currentHealthStu;
+    if (!s) return;
+    document.getElementById('h-modal-title').textContent = `✏️ 🆔 ${s.login_id} 측정 종목·기록 수정`;
+    document.getElementById('h-edit-id').value = s.id;
+    document.getElementById('h-loginid-group').style.display = 'none'; document.getElementById('h-stu-loginid').required = false;
+    document.getElementById('h-join-group').style.display = 'none'; document.getElementById('h-join-code').required = false;
+    document.getElementById('h-pin-group').style.display = 'none'; document.getElementById('h-stu-pin').required = false;
+    document.getElementById('h-consent-section').style.display = 'none';
+
+    document.getElementById('h-stu-num').value = s.student_number;
+    document.getElementById('h-stu-name').value = s.real_name;
+    document.getElementById('h-stu-grade').value = s.school_grade;
+    document.getElementById('h-stu-gender').value = s.gender;
+    document.getElementById('h-stu-class').value = s.grade_class || '';
+    document.getElementById('h-stu-height').value = s.height;
+    document.getElementById('h-stu-weight').value = s.weight;
+    document.getElementById('h-stu-resthr').value = s.rest_hr;
+
+    ['cardio','flex','strength','power'].forEach(d => {
+      document.getElementById(`h-ev-${d}`).value = s.paps_data[d].event;
+      document.getElementById(`h-val-${d}`).value = s.paps_data[d].value;
+    });
+    updateHealthFormHints();
+    document.getElementById('h-val-bmi').value = s.paps_data.bmi.value;
+    document.getElementById('h-val-bf').value = s.paps_data.bmi.bf;
+    openModal('health-form-modal');
+  }
+
+  async function saveHealthStudentForm(e) {
+    e.preventDefault();
+    const editId = document.getElementById('h-edit-id').value;
+    const student_number = document.getElementById('h-stu-num').value.trim();
+    const real_name = document.getElementById('h-stu-name').value.trim();
+    const school_grade = document.getElementById('h-stu-grade').value;
+    const gender = document.getElementById('h-stu-gender').value;
+    const grade_class = document.getElementById('h-stu-class').value.trim();
+    const height = parseFloat(document.getElementById('h-stu-height').value);
+    const weight = parseFloat(document.getElementById('h-stu-weight').value);
+    const rest_hr = parseInt(document.getElementById('h-stu-resthr').value) || 70;
+    const paps_data = {
+      cardio: { event: document.getElementById('h-ev-cardio').value, value: parseFloat(document.getElementById('h-val-cardio').value) },
+      flex: { event: document.getElementById('h-ev-flex').value, value: parseFloat(document.getElementById('h-val-flex').value) },
+      strength: { event: document.getElementById('h-ev-strength').value, value: parseFloat(document.getElementById('h-val-strength').value) },
+      power: { event: document.getElementById('h-ev-power').value, value: parseFloat(document.getElementById('h-val-power').value) },
+      bmi: { event: 'bmi', value: parseFloat(document.getElementById('h-val-bmi').value), bf: parseFloat(document.getElementById('h-val-bf').value) }
+    };
+
+    if (editId) {
+      const patch = { student_number, real_name, school_grade, gender, grade_class, height, weight, rest_hr, paps_data };
+      Object.assign(currentHealthStu, patch);
+      await persistHealthUpdate(patch);
+      closeModal('health-form-modal'); openHealthDetail(currentHealthStu);
+    } else {
+      const genOk = document.getElementById('h-consent-general').checked;
+      const senOk = document.getElementById('h-consent-sensitive').checked;
+      const resOk = document.getElementById('h-consent-research').checked;
+      if (!genOk || !senOk) { alert('⚠️ [필수 1] 일반 개인정보 수집·이용 및 [필수 2] 민감정보 별도 동의에 모두 체크해 주세요.'); return; }
+      const isUnder14 = (gradeInfoMap[school_grade] || gradeInfoMap.H1).under14;
+      const gChecked = document.getElementById('h-consent-guardian').checked;
+      const gName = document.getElementById('h-guardian-name').value.trim();
+      if (isUnder14 && (!gChecked || !gName)) { alert('⚠️ 만 14세 미만(초5~중2) 학생은 법정대리인(보호자) 사전 동의 확인 체크와 보호자 성함 입력이 필수입니다.'); return; }
+
+      const login_id = document.getElementById('h-stu-loginid').value.trim();
+      const pin = document.getElementById('h-stu-pin').value.trim();
+      const joinCode = document.getElementById('h-join-code').value.trim();
+      if (!/^\d{4}$/.test(pin)) { alert('비밀번호는 숫자 4자리로 입력하세요.'); return; }
+      const pin_hash = await sha256(pin);
+      const t = getTodayStr();
+      const consent_data = { generalAgreed: genOk, sensitiveAgreed: senOk, researchAgreed: resOk, guardianConfirmed: isUnder14 ? gChecked : null, guardianName: isUnder14 ? gName : '', agreedAt: new Date().toISOString() };
+      const records = Object.keys(paps_data).map(d => ({ date: t, domain: d, event: paps_data[d].event, value: paps_data[d].value }));
+      const payload = { id: 'h_' + Date.now(), login_id, student_number, real_name, grade_class, school_grade, gender, height, weight, rest_hr, pin_hash, paps_data, consent_data, note: '', records, logs: [] };
+      if (isCloud) {
+        const { data } = await sb.rpc('sut_health_register', { p_join_code: joinCode, p_admin_hash: adminPinHash, p_data: payload });
+        if (!data || !data.ok) { alert(data?.msg || '등록 실패'); return; }
+      } else {
+        if (!isAdmin && joinCode !== (localStorage.getItem(L_JOIN) || '2026')) { alert('가입 인증코드가 일치하지 않습니다.'); return; }
+        const arr = JSON.parse(localStorage.getItem(L_H) || '[]');
+        if (arr.some(s => s.login_id === login_id)) { alert('이미 사용 중인 아이디입니다.'); return; }
+        arr.unshift(payload); localStorage.setItem(L_H, JSON.stringify(arr));
+      }
+      closeModal('health-form-modal'); refreshCurrentList();
+      alert(`✅ [🆔 ${login_id}] 개인정보 동의 확인 및 건강체력 등록 완료!`);
+    }
+  }
+
+  async function persistHealthUpdate(patch) {
+    if (!currentHealthStu) return;
+    if (isCloud) await sb.rpc('sut_health_update', { p_id: currentHealthStu.id, p_auth_hash: isAdmin ? adminPinHash : currentHealthAuthHash, p_is_admin: isAdmin, p_data: patch });
+    else {
+      const a = JSON.parse(localStorage.getItem(L_H) || '[]');
+      const i = a.findIndex(x => x.id === currentHealthStu.id);
+      if (i !== -1) { a[i] = { ...a[i], ...patch }; localStorage.setItem(L_H, JSON.stringify(a)); }
+    }
+  }
+
+  async function deleteHealthStudent(id, name) {
+    if (!isAdmin || !confirm(`[${name}] 계정을 삭제하시겠습니까?`)) return;
+    if (isCloud) await sb.rpc('sut_health_delete', { p_id: id, p_admin_hash: adminPinHash });
+    else localStorage.setItem(L_H, JSON.stringify(JSON.parse(localStorage.getItem(L_H) || '[]').filter(x => x.id !== id)));
+    goHomeCurrentMode();
+  }
+
+  function openHealthDetail(stu) {
+    currentHealthStu = stu;
+    if (!stu.logs) stu.logs = [];
+    if (!stu.records) stu.records = [];
+    document.getElementById('health-dashboard-view').style.display = 'none';
+    document.getElementById('health-detail-view').style.display = 'block';
+    const gInfo = gradeInfoMap[stu.school_grade] || gradeInfoMap.H1;
+    document.getElementById('h-det-title').textContent = `🆔 ${stu.login_id} · ${stu.student_number} ${stu.real_name}`;
+    document.getElementById('h-det-subtitle').textContent = `${gInfo.label} (${stu.gender === 'M' ? '남' : '여'}) · 신장 ${stu.height}cm · 체중 ${stu.weight}kg · 안정시 심박수 ${stu.rest_hr}bpm`;
+
+    const gn = document.getElementById('h-det-growth-notice');
+    if (gInfo.isYouth) {
+      gn.style.display = 'block';
+      gn.textContent = `🛡️ [성장기 보호 안전 모드 자동 적용] ${gInfo.label} 학생의 성장판 보호를 위해 고중량(체중 80% 이상) 및 한계 반복(RIR 0~1) 처방이 제한되고 맨몸·밴드·여유 반복(RIR 3~4) 중심으로 설정됩니다.`;
+    } else gn.style.display = 'none';
+
+    document.getElementById('h-det-actions').innerHTML = `
+      <button class="btn btn-ghost" onclick="openHealthEditModal()">✏️ 측정 종목·기록 수정</button>
+      <button class="btn btn-amber" onclick="openResetStudentPin('health','${stu.id}','${stu.login_id}')">🔑 비번 변경</button>
+    `;
+    renderHealthScorecard();
+    selectHealthDomain(activeHealthDomain, false);
+  }
+
+  function renderHealthScorecard() {
+    const stu = currentHealthStu;
+    const cols = { 1: '#10b981', 2: '#3b82f6', 3: '#a855f7', 4: '#f59e0b', 5: '#f43f5e' };
+    const pcts = { 1: 100, 2: 82, 3: 64, 4: 42, 5: 24 };
+    document.getElementById('h-scorecard-grid').innerHTML = Object.keys(papsEventMeta).map(d => {
+      const item = stu.paps_data[d];
+      const evMeta = papsEventMeta[d].events[item.event];
+      const res = calcHealthGrade(stu.school_grade, stu.gender, d, item.event, item.value);
+      const col = cols[res.grade];
+      const extra = d === 'bmi' ? ` (체지방 ${item.bf}%)` : '';
+      return `<div class="sc-item ${d === activeHealthDomain ? 'active-sc' : ''} ${res.grade >= 4 ? 'priority-sc' : (res.grade === 1 ? 'elite-sc' : '')}" onclick="selectHealthDomain('${d}',true)">
+        <div class="sc-top"><span>${papsEventMeta[d].name}</span><span style="color:${col};">${res.grade}등급</span></div>
+        <div class="sc-vals">${evMeta.name}: <strong>${item.value}${evMeta.unit}</strong>${extra}<br><span style="font-size:11px; color:var(--text-muted);">${res.goalLabel}</span></div>
+        <div class="sc-bar-bg"><div class="sc-bar-fill" style="width:${pcts[res.grade]}%; background:${col};"></div></div></div>`;
+    }).join('');
+    document.getElementById('h-domain-tabs').innerHTML = `<span style="font-size:12px; color:var(--text-sub); font-weight:700;">📌 PAPS 영역:</span>` +
+      Object.keys(papsEventMeta).map(d => `<button class="ev-tab-btn ${d === activeHealthDomain ? 'active' : ''}" onclick="selectHealthDomain('${d}',true)">${papsEventMeta[d].name}</button>`).join('');
+  }
+
+  function selectHealthDomain(d, rerender = true) {
+    activeHealthDomain = d;
+    if (rerender) renderHealthScorecard();
+    buildHealthDesigner();
+    renderHealthWlogPanel();
+    renderHealthGrowthPanel();
+  }
+
+  function switchHealthSubTab(tab) {
+    ['rx','wlog','growth'].forEach(t => {
+      document.getElementById(`h-subtab-${t}`).classList.toggle('active', t === tab);
+      document.getElementById(`h-${t}-panel`).style.display = t === tab ? 'block' : 'none';
+    });
+    if (tab === 'wlog') renderHealthWlogPanel();
+    if (tab === 'growth') renderHealthGrowthPanel();
+  }
+
+  function buildHealthDesigner() {
+    const stu = currentHealthStu, d = activeHealthDomain;
+    const item = stu.paps_data[d];
+    const res = calcHealthGrade(stu.school_grade, stu.gender, d, item.event, item.value);
+    const gInfo = gradeInfoMap[stu.school_grade] || gradeInfoMap.H1;
+
+    const theoryMap = {
+      cardio: {
+        recMethod: res.grade <= 2 ? 'interval' : 'circuit',
+        lit: res.grade <= 2
+          ? "ACSM 유산소 운동처방 지침 및 특이성 원리에 따라, 상위 등급(1·2등급)은 환기역치(VT2) 이상의 고강도 인터벌 자극과 불완전 휴식을 반복해야 최대산소섭취량 상한선을 돌파할 수 있습니다."
+          : "ACSM 유산소 운동처방 지침 및 점진적 과부하 원리에 따라, 기초 심폐지구력 향상 단계에서는 유산소성 대사 기반과 심박출량을 안정적으로 높이는 지속주 및 중강도 유산소 서킷이 우선 권장됩니다.",
+        proxy: gInfo.isYouth
+          ? "🏫 현장 확인 지표: 말하기 테스트 2단계(한 문장을 중간에 안 끊고 완결 · 1~15 중 1번 숨고름) 또는 15초 맥박 측정으로 목표 심박수 구간을 확인하세요."
+          : "🏫 현장 확인 지표: 말하기 테스트(노래 / 한 문장 완결 / 2~3단어 끊김 / 1단어 발화) 또는 15초 맥박 측정기로 목표 심박수(%HRR)를 확인하세요.",
+        safety: "⚠️ 안전 수칙: 제한된 체육관 트랙에서 달릴 때 추월 방향을 통일하고, 어지럼증 발생 시 즉시 속도를 줄여 걷기로 전환하세요."
+      },
+      strength: {
+        recMethod: 'weight',
+        lit: gInfo.isYouth
+          ? "NSCA 청소년 저항트레이닝 지침에 따라, 성장기 학생은 고중량 바벨 대신 맨몸·탄력밴드 부하와 바른 자세 제어(RIR 3~4 여유 반복)를 통해 근신경계 협응과 근지구력을 발달시켜야 합니다."
+          : "ACSM 및 NSCA 저항운동 원리에 따라, 근력·근지구력 등급 향상을 위해서는 주동근에 점진적 과부하를 주되 마지막 반복에서 RIR 1~3(1~3개 여유)을 남기는 세트 구성이 과학적으로 유효합니다.",
+        proxy: "🏫 현장 확인 지표: 세트 종료 시 바른 자세로 몇 개를 더 들 수 있는지(RIR: 여유 반복 횟수)와 Borg RPE(0~10)로 부하를 조절하세요.",
+        safety: "⚠️ 안전 수칙: 바벨·덤벨 사용 시 원판 고정핀(칼라) 체결을 확인하고, 호흡을 참지 말고 힘을 쓸 때 내쉬세요."
+      },
+      power: {
+        recMethod: 'plyo',
+        lit: "신장-단축 주기(SSC, Stretch-Shortening Cycle) 이론에 따라, 근육의 신장 반사와 탄성 에너지를 극대화하는 플라이오메트릭 트레이닝이 제자리멀리뛰기 및 단거리 출발 순발력 향상에 가장 직접적인 전이 효과를 보입니다.",
+        proxy: "🏫 현장 확인 지표: 최고 기록 대비 목표 거리 도달률(%) 콘 표식 또는 스톱워치 목표 구간 시간(sec)으로 매 시도의 질을 측정하세요.",
+        safety: "⚠️ 안전 수칙: 점프 착지 시 무릎이 안쪽으로 모이지 않도록(발끝 방향 정렬) 스틱 랜딩 자세를 유지하고 매트 간격을 확보하세요."
+      },
+      flex: {
+        recMethod: 'core',
+        lit: "ACSM 유연성 트레이닝 지침에 따라, 정적 스트레칭(20~30초 유지)과 고유수용성 신경근 촉진법(PNF 수축-이완)은 골지건기관(GTO)의 자가억제 기전을 유도하여 관절 가동범위(ROM)를 효과적으로 확장합니다.",
+        proxy: "🏫 현장 확인 지표: 통증이 없는 범위에서 '약간의 당김이 느껴지는 지점(신장감 2단계)'을 유지 시간(초)으로 정확히 계측하세요.",
+        safety: "⚠️ 안전 수칙: 반동을 주며 억지로 허리를 꺾는 동작(탄성 스트레칭)은 근방추 반사를 유발해 부상 위험이 크므로 금지합니다."
+      },
+      bmi: {
+        recMethod: 'circuit',
+        lit: "ACSM 체중 관리 가이드라인에 따라, 전신 대근육군을 활용하는 서킷 트레이닝과 중강도 유산소 운동의 결합은 에너지 소비량을 극대화하면서 제지방량(근육량)을 보존하는 데 효과적입니다.",
+        proxy: "🏫 현장 확인 지표: 말하기 테스트 2단계(한 문장 완결 가능 수준)와 목표 심박수(HRR 60~75%)를 유지하며 연속 순환하세요.",
+        safety: "⚠️ 안전 수칙: 과체중·비만 단계에서는 무릎·발목 충격을 줄이기 위해 고충격 점프 대신 로우 임팩트(빠른 걷기·자전거·스쿼트) 동작을 우선 선택하세요."
+      }
+    }[d];
+
+    document.getElementById('h-theory-box').innerHTML = `
+      <div class="theory-title"><span>📚 학계 문헌·이론 기반 추천 가이드 (${papsEventMeta[d].name} · 현재 ${res.grade}등급)</span></div>
+      <div class="theory-body">${theoryMap.lit}</div>
+      <div class="field-proxy-pill">${theoryMap.proxy}</div>
+      <div class="safety-banner">${theoryMap.safety}</div>
+    `;
+
+    const methods = [
+      { k: 'interval', n: '인터벌 트레이닝 (Interval)' },
+      { k: 'weight', n: '웨이트 트레이닝 (Weight)' },
+      { k: 'circuit', n: '서킷 트레이닝 (Circuit)' },
+      { k: 'plyo', n: '플라이오메트릭 트레이닝 (Plyometric)' },
+      { k: 'core', n: '코어 트레이닝 (Core)' }
+    ];
+    const mSel = document.getElementById('h-method-sel');
+    mSel.innerHTML = methods.map(m => `<option value="${m.k}">${m.k === theoryMap.recMethod ? '⭐ [학술 추천] ' : ''}${m.n}</option>`).join('');
+    mSel.value = theoryMap.recMethod;
+    onHealthMethodChange();
+  }
+
+  function onHealthMethodChange() {
+    const stu = currentHealthStu, d = activeHealthDomain;
+    const method = document.getElementById('h-method-sel').value;
+    const gInfo = gradeInfoMap[stu.school_grade] || gradeInfoMap.H1;
+
+    const drillsByDomain = {
+      cardio: ["⭐ [추천] 20m 왕복 페이스 인터벌 러닝", "⭐ [추천] 2분 빠른 러닝 + 1분 파워 워킹", "트랙 15~20분 유산소 지속주", "스텝박스 오르내리기 리듬 트레이닝"],
+      strength: gInfo.isYouth
+        ? ["⭐ [추천] 맨몸 스쿼트 & 런지 (자세 제어)", "⭐ [추천] 무릎 대고/정자세 팔굽혀펴기", "탄력 밴드 로우 & 플랭크 코어", "윗몸말아올리기 네거티브(천천히 하강)"]
+        : ["⭐ [추천] 바벨/덤벨 스쿼트 & 데드리프트", "⭐ [추천] 푸시업 & 덤벨 벤치프레스", "케이블 시티드 로우 & 랫풀다운", "행잉 니레이즈 & 윗몸말아올리기"],
+      power: gInfo.isYouth
+        ? ["⭐ [추천] 제자리 양발 착지 제어 점프 (스틱 랜딩)", "⭐ [추천] 낮은 콘 연속 넘기 (발목 탄성)", "메디신볼 오버헤드 던지기", "15m 스타트 가속 스프린트"]
+        : ["⭐ [추천] 플라이오메트릭 박스 점프 (30~45cm)", "⭐ [추천] 연속 바운딩 & 멀리뛰기 팔치기", "메디신볼 폭발적 스쿼트 점프", "30m 최대 가속 스프린트"],
+      flex: ["⭐ [추천] 햄스트링·종아리 정적 스트레칭", "⭐ [추천] 탄력 밴드 PNF 수축-이완 스트레칭", "고관절 힙힌지 & 흉추 가동성 드릴", "코어 안정화 버드독 & 데드버그"],
+      bmi: ["⭐ [추천] 전신 무충격 서킷 (스쿼트-푸시업-마운틴클라이머)", "⭐ [추천] 파워 워킹 & 조깅 인터벌 (30분)", "스텝박스 유산소 순환 트레이닝", "전신 코어·근지구력 서킷"]
+    };
+    const dSel = document.getElementById('h-drill-sel');
+    dSel.innerHTML = drillsByDomain[d].map(x => `<option value="${x.replace('⭐ [추천] ','')}">${x}</option>`).join('');
+
+    const m1 = document.getElementById('h-stage1-metric');
+    const tBadge = document.getElementById('h-track-badge');
+    if (d === 'cardio' || d === 'bmi' || method === 'interval') {
+      tBadge.textContent = "트랙 1: 유산소·대사성 지표";
+      m1.innerHTML = `<option value="hrr">💓 목표 심박수 (%HRR 카르보넨 공식)</option><option value="talk">🗣️ 말하기 테스트 4단계 (발화 단위·숫자세기)</option><option value="rpe">📊 운동자각도 (Borg RPE 0~10)</option>`;
+    } else if (d === 'strength' || method === 'weight' || method === 'core') {
+      tBadge.textContent = "트랙 2: 저항·근력 지표";
+      m1.innerHTML = `<option value="rir">🔢 여유 반복 횟수 (RIR)</option><option value="bw">🏋️ 체중 대비 부하 (%BW)</option><option value="rpe">📊 운동자각도 (Borg RPE 0~10)</option>`;
+    } else if (d === 'power' || method === 'plyo') {
+      tBadge.textContent = "트랙 3: 고속 신경계·파워 지표";
+      m1.innerHTML = `<option value="dist">📏 최고 기록 대비 목표 거리·시간 비율(%)</option><option value="cr10">📊 노력도 척도 (Borg CR-10)</option>`;
+    } else {
+      tBadge.textContent = "트랙 4: 유연성·가동성 지표";
+      m1.innerHTML = `<option value="stretch">🧘 신장감 단계 및 유지 시간</option>`;
+    }
+    onHealthMetricChange();
+  }
+
+  function onHealthMetricChange() {
+    const stu = currentHealthStu, d = activeHealthDomain;
+    const res = calcHealthGrade(stu.school_grade, stu.gender, d, stu.paps_data[d].event, stu.paps_data[d].value);
+    const gInfo = gradeInfoMap[stu.school_grade] || gradeInfoMap.H1;
+    const metric = document.getElementById('h-stage1-metric').value;
+    const zSel = document.getElementById('h-stage2-zone');
+    const sSel = document.getElementById('h-stage3-sets');
+    const vSel = document.getElementById('h-stage4-vol');
+
+    const recIdx = res.grade >= 4 ? 0 : (res.grade === 3 ? 1 : 2);
+    if (metric === 'hrr') {
+      const z = [
+        `기초 유산소: ${calcKarvonenRange(stu.school_grade, stu.rest_hr, 0.50, 0.60)}`,
+        `중강도 지구력: ${calcKarvonenRange(stu.school_grade, stu.rest_hr, 0.60, 0.75)}`,
+        `고강도 역치: ${calcKarvonenRange(stu.school_grade, stu.rest_hr, 0.75, 0.85)}`
+      ];
+      zSel.innerHTML = z.map((txt, i) => `<option value="${txt}">${i === recIdx ? '⭐ [추천] ' : ''}${txt}</option>`).join('');
+      zSel.selectedIndex = recIdx;
+    } else if (metric === 'talk') {
+      const z = [
+        "1단계 (저강도 · VT1 미만): 노래 부르기 가능 / 한 호흡 1~15 완주",
+        "2단계 (중강도 · VT1 부근): 한 문장 완결 가능 / 1번 숨고름 후 1~15 완주",
+        "3단계 (고강도 · VT1~VT2): 2~3단어(숫자 3~4개)마다 숨차서 끊어 말함"
+      ];
+      zSel.innerHTML = z.map((txt, i) => `<option value="${txt}">${i === recIdx ? '⭐ [추천] ' : ''}${txt}</option>`).join('');
+      zSel.selectedIndex = recIdx;
+    } else if (metric === 'rir') {
+      const z = gInfo.isYouth
+        ? ["RIR 4 이상 (4개 이상 여유 · 성장기 안전)", "RIR 3 (3개 여유 · 자세 유지 표준)", "RIR 2 (2개 여유 · 상한 제한)"]
+        : ["RIR 3~4 (자세 습득·기초 근지구력)", "RIR 2~3 (표준 근비대·근지구력)", "RIR 1~2 (고강도 근력 향상)"];
+      const safeIdx = gInfo.isYouth ? Math.min(1, recIdx) : recIdx;
+      zSel.innerHTML = z.map((txt, i) => `<option value="${txt}">${i === safeIdx ? '⭐ [추천] ' : ''}${txt}</option>`).join('');
+      zSel.selectedIndex = safeIdx;
+    } else if (metric === 'bw') {
+      const bw = stu.weight;
+      const z = gInfo.isYouth
+        ? [`맨몸 / 탄력밴드 (성장기 안전 기준)`, `체중의 30% (${round2_5(bw*0.3)}kg · 저부하 자세)`, `체중의 45% (${round2_5(bw*0.45)}kg · 성장기 상한)`]
+        : [`체중의 45% (${round2_5(bw*0.45)}kg · 기초 적응)`, `체중의 65% (${round2_5(bw*0.65)}kg · 표준 근력)`, `체중의 80% (${round2_5(bw*0.80)}kg · 고강도 근력)`];
+      const safeIdx = gInfo.isYouth ? Math.min(1, recIdx) : recIdx;
+      zSel.innerHTML = z.map((txt, i) => `<option value="${txt}">${i === safeIdx ? '⭐ [추천] ' : ''}${txt}</option>`).join('');
+      zSel.selectedIndex = safeIdx;
+    } else if (metric === 'dist') {
+      const pItem = stu.paps_data.power;
+      const z = pItem.event === 'longjump'
+        ? [`최고 기록의 80% (${Math.round(pItem.value*0.8)}cm · 착지 자세 집중)`, `최고 기록의 90% (${Math.round(pItem.value*0.9)}cm · 탄성 반발)`, `최고 기록의 95~100% (${Math.round(pItem.value*0.95)}~${pItem.value}cm · 최대 도약)`]
+        : [`최고 기록의 80~85% 속도 (${(pItem.value/0.82).toFixed(1)}초 · 리듬 주행)`, `최고 기록의 90~95% 속도 (${(pItem.value/0.92).toFixed(1)}초 · 이완 고속)`, `최고 기록의 96~100% 속도 (${pItem.value}초대 · 최대 질주)`];
+      zSel.innerHTML = z.map((txt, i) => `<option value="${txt}">${i === recIdx ? '⭐ [추천] ' : ''}${txt}</option>`).join('');
+      zSel.selectedIndex = recIdx;
+    } else if (metric === 'stretch') {
+      zSel.innerHTML = `<option value="1단계: 통증 없는 가벼운 당김">1단계: 통증 없는 가벼운 당김</option><option value="2단계: 적정 신장감 (약간의 뻐근함 직전)" selected>⭐ [추천] 2단계: 적정 신장감 (뻐근함 직전)</option><option value="3단계: PNF 6초 등척성 수축 후 심부 신장">3단계: PNF 6초 수축 후 심부 신장</option>`;
+    } else {
+      const z = ["Borg RPE 4~5 (가벼운 운동 · 기초 적응)", "Borg RPE 6~7 (약간 힘듦 · 권장 트레이닝)", "Borg RPE 8~9 (매우 힘듦 · 고강도 돌파)"];
+      zSel.innerHTML = z.map((txt, i) => `<option value="${txt}">${i === recIdx ? '⭐ [추천] ' : ''}${txt}</option>`).join('');
+      zSel.selectedIndex = recIdx;
+    }
+
+    sSel.innerHTML = `<option value="2세트">2세트 (기초 적응 / 컨디션 저하 시)</option><option value="3세트" selected>⭐ [추천] 3세트 (현재 수준 권장 표준)</option><option value="4세트">4세트 (체력 향상 집중 강화)</option><option value="5세트">5세트 (상위 등급 돌파 고볼륨)</option>`;
+
+    if (d === 'cardio' || d === 'bmi') {
+      vSel.innerHTML = `<option value="6라운드 (약 18분)">6라운드 (약 18분 · 입문)</option><option value="8라운드 (약 24분)" selected>⭐ [추천] 8라운드 (약 24분 · 표준)</option><option value="10라운드 (약 30분)">10라운드 (약 30분 · 심화)</option><option value="20분 연속 지속주">20분 연속 지속주</option>`;
+    } else if (d === 'power') {
+      vSel.innerHTML = `<option value="4~5회 (최대 신경계 출력 · 피로 방지)" selected>⭐ [추천] 4~5회 (최대 신경계 출력)</option><option value="6~8회 (탄성 리듬 반복)">6~8회 (탄성 리듬 반복)</option><option value="10회 (순발력 지구력)">10회 (순발력 지구력)</option>`;
+    } else if (d === 'flex') {
+      vSel.innerHTML = `<option value="15초 유지">15초 유지 (초기 적응)</option><option value="25~30초 유지" selected>⭐ [추천] 25~30초 유지 (ACSM 표준)</option><option value="45초 유지">45초 유지 (심부 이완)</option>`;
+    } else {
+      vSel.innerHTML = `<option value="6~8회 (근력 중심)">6~8회 (근력 중심)</option><option value="10~12회 (표준 근력·근지구력)" selected>⭐ [추천] 10~12회 (표준)</option><option value="15~20회 (근지구력 강화)">15~20회 (근지구력 강화)</option>`;
+    }
+    onHealthDesignerUpdate();
+  }
+
+  function onHealthDesignerUpdate() {
+    const d = activeHealthDomain;
+    const methodTxt = document.getElementById('h-method-sel').options[document.getElementById('h-method-sel').selectedIndex].text.replace('⭐ [학술 추천] ','');
+    const drill = document.getElementById('h-drill-sel').value;
+    const zone = document.getElementById('h-stage2-zone').value;
+    const sets = document.getElementById('h-stage3-sets').value;
+    const vol = document.getElementById('h-stage4-vol').value;
+
+    document.getElementById('h-rest-guide').innerHTML = d === 'power'
+      ? "⏱️ 권장 휴식 시간: 신경계(CNS) 회복을 위해 세트 간 <strong>2~3분 완전 휴식</strong>을 취하세요."
+      : (d === 'cardio' ? "⏱️ 권장 휴식 시간: 불완전 휴식 원리에 따라 인터벌 간 <strong>45~60초 가벼운 걷기</strong>를 유지하세요."
+      : "⏱️ 권장 휴식 시간: 자세 유지와 대사 회복을 위해 세트 간 <strong>60~90초 휴식</strong>을 권장합니다.");
+
+    document.getElementById('h-routine-preview').innerHTML = `
+      <div class="exercise-item">
+        <div>
+          <span class="ex-role">${methodTxt}</span>
+          <span class="ex-info">${drill}</span>
+          <div class="ex-detail">학생 설계 처방: <strong>${zone} · ${sets} · ${vol}</strong></div>
+        </div>
+        <div class="ex-right-box">
+          <div class="ex-dosage">${sets} × ${vol}</div>
+          <button type="button" class="btn btn-pink" style="padding:6px 11px; font-size:12px;" onclick="quickSendHealthToLog()">✅ 이 처방으로 오늘 운동일지 작성 →</button>
+        </div>
+      </div>`;
+  }
+
+  function quickSendHealthToLog() {
+    const methodTxt = document.getElementById('h-method-sel').options[document.getElementById('h-method-sel').selectedIndex].text.replace('⭐ [학술 추천] ','').split(' ')[0];
+    const drill = document.getElementById('h-drill-sel').value;
+    const zone = document.getElementById('h-stage2-zone').value;
+    const sets = document.getElementById('h-stage3-sets').value;
+    const vol = document.getElementById('h-stage4-vol').value;
+    const rat = document.getElementById('h-rationale-input').value.trim();
+
+    switchHealthSubTab('wlog');
+    document.getElementById('h-wlog-domain').value = activeHealthDomain;
+    document.getElementById('h-wlog-ex').value = `[${methodTxt}] ${drill}`;
+    document.getElementById('h-wlog-plan').value = `${zone} · ${sets} · ${vol}`;
+    if (rat) document.getElementById('h-wlog-self').value = `설계근거: ${rat}`;
+    document.getElementById('h-wlog-actual').focus();
+  }
+
+  function renderHealthWlogPanel() {
+    const stu = currentHealthStu;
+    const days = new Set((stu.logs || []).map(l => l.date)).size;
+    document.getElementById('h-wlog-summary').innerHTML = `
+      <div class="summary-item"><div class="label">총 누적 운동일수</div><div class="val" style="color:#f472b6;">${days}일</div></div>
+      <div class="summary-item"><div class="label">총 누적 훈련 일지</div><div class="val">${(stu.logs || []).length}건</div></div>`;
+    document.getElementById('h-wlog-date').value = getTodayStr();
+    const curF = document.getElementById('h-wlog-filter').value || 'ALL';
+    const rows = (stu.logs || []).map((l, i) => ({ ...l, _idx: i })).filter(l => curF === 'ALL' || l.domain === curF).sort((a, b) => b.date.localeCompare(a.date));
+    document.getElementById('h-wlog-tbody').innerHTML = rows.map(l => `<tr>
+      <td style="white-space:nowrap;">${l.date}</td>
+      <td><span class="level-badge" style="background:rgba(236,72,153,0.2); color:#f472b6;">${papsEventMeta[l.domain]?.name || l.domain}</span></td>
+      <td><strong>${l.exercise}</strong><div style="font-size:11.5px; color:var(--text-sub);">${l.plan}</div></td>
+      <td><span class="rpe-badge">${l.actual}</span></td>
+      <td style="font-size:12px;"><div>🙋 자기: ${l.selfEval || '-'}</div><div style="color:#6ee7b7;">🤝 동료: ${l.peerEval || '-'}</div></td>
+      <td><button class="btn btn-rose" style="padding:3px 7px; font-size:11px;" onclick="deleteHealthLog(${l._idx})">삭제</button></td>
+    </tr>`).join('') || `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">누적된 운동일지가 없습니다.</td></tr>`;
+  }
+
+  async function addHealthWorkoutLog(e) {
+    e.preventDefault();
+    const stu = currentHealthStu;
+    stu.logs.unshift({
+      date: document.getElementById('h-wlog-date').value,
+      domain: document.getElementById('h-wlog-domain').value,
+      exercise: document.getElementById('h-wlog-ex').value.trim(),
+      plan: document.getElementById('h-wlog-plan').value.trim(),
+      actual: document.getElementById('h-wlog-actual').value.trim(),
+      selfEval: document.getElementById('h-wlog-self').value.trim(),
+      peerEval: document.getElementById('h-wlog-peer').value.trim()
+    });
+    await persistHealthUpdate({ logs: stu.logs });
+    ['ex','plan','actual','self','peer'].forEach(k => document.getElementById(`h-wlog-${k}`).value = '');
+    renderHealthWlogPanel();
+    alert('✅ 일자별 누적 운동일지가 저장되었습니다!');
+  }
+
+  async function deleteHealthLog(idx) {
+    currentHealthStu.logs.splice(idx, 1);
+    await persistHealthUpdate({ logs: currentHealthStu.logs });
+    renderHealthWlogPanel();
+  }
+
+  function renderHealthGrowthPanel() {
+    const stu = currentHealthStu, d = activeHealthDomain;
+    const item = stu.paps_data[d];
+    const evMeta = papsEventMeta[d].events[item.event];
+    const res = calcHealthGrade(stu.school_grade, stu.gender, d, item.event, item.value);
+    document.getElementById('h-chart-title').textContent = `📊 [${papsEventMeta[d].name} - ${evMeta.name}] 성장 추이`;
+    document.getElementById('h-chart-goal').textContent = res.goalLabel;
+    document.getElementById('h-rec-date').value = getTodayStr();
+    document.getElementById('h-rec-unit').textContent = evMeta.unit;
+
+    const recs = (stu.records || []).map((r, i) => ({ ...r, _idx: i })).filter(r => r.domain === d).sort((a, b) => a.date.localeCompare(b.date));
+    document.getElementById('h-rec-tbody').innerHTML = recs.slice().reverse().map(r => {
+      const ri = calcHealthGrade(stu.school_grade, stu.gender, d, item.event, r.value);
+      return `<tr><td>${r.date}</td><td>${evMeta.name}</td><td><strong>${r.value}${evMeta.unit}</strong></td><td><strong>${ri.grade}등급</strong></td><td>${ri.goalLabel}</td><td><button class="btn btn-rose" style="padding:3px 7px; font-size:11px;" onclick="deleteHealthRecord(${r._idx})">삭제</button></td></tr>`;
+    }).join('');
+    drawSVGChart('h-svg-chart', recs, res.nextGoal, evMeta.unit, evMeta.dir, res.goalLabel);
+  }
+
+  async function addHealthRecord(e) {
+    e.preventDefault();
+    const stu = currentHealthStu, d = activeHealthDomain;
+    const date = document.getElementById('h-rec-date').value;
+    const val = parseFloat(document.getElementById('h-rec-val').value);
+    stu.paps_data[d].value = val;
+    stu.records.push({ date, domain: d, event: stu.paps_data[d].event, value: val });
+    await persistHealthUpdate({ paps_data: stu.paps_data, records: stu.records });
+    document.getElementById('h-rec-val').value = '';
+    renderHealthScorecard(); renderHealthGrowthPanel(); buildHealthDesigner();
+  }
+  async function deleteHealthRecord(idx) {
+    currentHealthStu.records.splice(idx, 1);
+    await persistHealthUpdate({ records: currentHealthStu.records });
+    renderHealthGrowthPanel();
+  }
+
+  /* ==================== 6. SKILL-RELATED FITNESS (운동체력) ==================== */
+  function renderSkillGrid() {
+    const q = (document.getElementById('skill-search').value || '').trim().toLowerCase();
+    const grid = document.getElementById('skill-student-grid');
+    const filtered = skillList.filter(s =>
+      (s.login_id && s.login_id.toLowerCase().includes(q)) ||
+      (isAdmin && ((s.real_name && s.real_name.toLowerCase().includes(q)) || (s.student_number && s.student_number.includes(q))))
+    );
+    document.getElementById('skill-count-label').textContent = `등록 계정: ${filtered.length}명`;
+    if (!filtered.length) { grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:32px; color:var(--text-sub); border:1px dashed var(--card-border); border-radius:var(--radius);">표시할 계정이 없습니다.</div>`; return; }
+
+    grid.innerHTML = filtered.map(s => {
+      const spName = s.sport_type === 'custom' ? '나만의 종목' : (sportPresets[s.sport_type]?.name || '스포츠 종목');
+      const gLbl = (gradeInfoMap[s.school_grade] || gradeInfoMap.H1).label;
+      if (!isAdmin) {
+        return `<div class="student-card" onclick="openStudentAuthModal('skill','${s.id}','${s.login_id}')">
+          <div><div class="stu-card-top"><div class="stu-id-title">🆔 ${s.login_id}</div><span class="level-badge">${gLbl} · ${spName}</span></div>
+          <div class="privacy-box">🔒 개인정보 보호 중 (학번·실명·기록 비공개)<br>본인 비밀번호 입력 후 종목별 처방과 일지를 확인하세요.</div></div>
+          <div class="stu-card-footer"><span>운동체력 계정</span><span style="color:#60a5fa; font-weight:700;">비번 입력 후 열람 →</span></div></div>`;
+      }
+      const days = new Set((s.logs || []).map(l => l.date)).size;
+      const resOk = s.consent_data?.researchAgreed;
+      return `<div class="student-card" onclick='openSkillDetail(${JSON.stringify(s).replace(/'/g, "&#39;")})'>
+        <div><div class="stu-card-top"><div><div class="stu-id-title">🆔 ${s.login_id}</div><div class="stu-admin-sub">${s.student_number} ${s.real_name} (${gLbl} · ${spName})</div></div>
+        <span class="level-badge" style="background:${resOk ? 'rgba(16,185,129,0.2)' : 'rgba(148,163,184,0.2)'}; color:${resOk ? '#34d399' : '#94a3b8'};">${resOk ? '연구동의' : '수업전용'}</span></div></div>
+        <div><div class="stu-card-footer"><span>🗓️ 누적 운동일: <strong style="color:#60a5fa;">${days}일</strong> (${(s.logs||[]).length}건)</span><span>상세 열람 →</span></div>
+        <div style="display:flex; gap:5px; margin-top:8px;" onclick="event.stopPropagation()">
+          <button class="btn btn-amber" style="flex:1; padding:4px; font-size:11px;" onclick="openResetStudentPin('skill','${s.id}','${s.real_name}')">🔑 비번초기화</button>
+          <button class="btn btn-rose" style="padding:4px 8px; font-size:11px;" onclick="deleteSkillStudent('${s.id}','${s.real_name}')">삭제</button>
+        </div></div></div>`;
+    }).join('');
+  }
+
+  function toggleCustomRatioInputs() {
+    document.getElementById('s-custom-ratios-box').style.display = document.getElementById('s-stu-sport').value === 'custom' ? 'block' : 'none';
+  }
+
+  function openSkillRegisterModal() {
+    document.getElementById('s-modal-title').textContent = '➕ 운동체력 학생 등록';
+    document.getElementById('s-edit-id').value = '';
+    document.getElementById('s-loginid-group').style.display = 'block'; document.getElementById('s-stu-loginid').required = true; document.getElementById('s-stu-loginid').value = '';
+    document.getElementById('s-join-group').style.display = isAdmin ? 'none' : 'block'; document.getElementById('s-join-code').required = !isAdmin; document.getElementById('s-join-code').value = '';
+    document.getElementById('s-pin-group').style.display = 'block'; document.getElementById('s-stu-pin').required = true; document.getElementById('s-stu-pin').value = '';
+    document.getElementById('s-consent-section').style.display = 'block';
+    ['s-consent-general','s-consent-sensitive','s-consent-research','s-consent-guardian'].forEach(id => document.getElementById(id).checked = false);
+    document.getElementById('s-guardian-name').value = '';
+    ['num','name','class'].forEach(k => document.getElementById(`s-stu-${k}`).value = '');
+    toggleCustomRatioInputs(); toggleGuardianBox('s');
+    openModal('skill-form-modal');
+  }
+
+  function openSkillEditModal() {
+    const s = currentSkillStu;
+    if (!s) return;
+    document.getElementById('s-modal-title').textContent = `✏️ 🆔 ${s.login_id} 종목·정보 수정`;
+    document.getElementById('s-edit-id').value = s.id;
+    document.getElementById('s-loginid-group').style.display = 'none'; document.getElementById('s-stu-loginid').required = false;
+    document.getElementById('s-join-group').style.display = 'none'; document.getElementById('s-join-code').required = false;
+    document.getElementById('s-pin-group').style.display = 'none'; document.getElementById('s-stu-pin').required = false;
+    document.getElementById('s-consent-section').style.display = 'none';
+
+    document.getElementById('s-stu-num').value = s.student_number;
+    document.getElementById('s-stu-name').value = s.real_name;
+    document.getElementById('s-stu-grade').value = s.school_grade;
+    document.getElementById('s-stu-gender').value = s.gender;
+    document.getElementById('s-stu-class').value = s.grade_class || '';
+    document.getElementById('s-stu-weight').value = s.weight;
+    document.getElementById('s-stu-resthr').value = s.rest_hr;
+    document.getElementById('s-stu-sport').value = s.sport_type;
+    toggleCustomRatioInputs();
+    openModal('skill-form-modal');
+  }
+
+  async function saveSkillStudentForm(e) {
+    e.preventDefault();
+    const editId = document.getElementById('s-edit-id').value;
+    const student_number = document.getElementById('s-stu-num').value.trim();
+    const real_name = document.getElementById('s-stu-name').value.trim();
+    const school_grade = document.getElementById('s-stu-grade').value;
+    const gender = document.getElementById('s-stu-gender').value;
+    const grade_class = document.getElementById('s-stu-class').value.trim();
+    const weight = parseFloat(document.getElementById('s-stu-weight').value) || 65;
+    const rest_hr = parseInt(document.getElementById('s-stu-resthr').value) || 70;
+    const sport_type = document.getElementById('s-stu-sport').value;
+    const custom_ratios = sport_type === 'custom' ? {
+      power: parseInt(document.getElementById('cr-power').value) || 0,
+      agility: parseInt(document.getElementById('cr-agility').value) || 0,
+      speed: parseInt(document.getElementById('cr-speed').value) || 0,
+      balance: parseInt(document.getElementById('cr-balance').value) || 0,
+      coordination: parseInt(document.getElementById('cr-coordination').value) || 0,
+      reaction: parseInt(document.getElementById('cr-reaction').value) || 0
+    } : {};
+
+    if (editId) {
+      const patch = { student_number, real_name, school_grade, gender, grade_class, weight, rest_hr, sport_type, custom_ratios };
+      Object.assign(currentSkillStu, patch);
+      await persistSkillUpdate(patch);
+      closeModal('skill-form-modal'); openSkillDetail(currentSkillStu);
+    } else {
+      const genOk = document.getElementById('s-consent-general').checked;
+      const senOk = document.getElementById('s-consent-sensitive').checked;
+      const resOk = document.getElementById('s-consent-research').checked;
+      if (!genOk || !senOk) { alert('⚠️ [필수 1] 일반 개인정보 수집·이용 및 [필수 2] 민감정보 별도 동의에 모두 체크해 주세요.'); return; }
+      const isUnder14 = (gradeInfoMap[school_grade] || gradeInfoMap.H1).under14;
+      const gChecked = document.getElementById('s-consent-guardian').checked;
+      const gName = document.getElementById('s-guardian-name').value.trim();
+      if (isUnder14 && (!gChecked || !gName)) { alert('⚠️ 만 14세 미만(초5~중2) 학생은 법정대리인(보호자) 사전 동의 확인 체크와 보호자 성함 입력이 필수입니다.'); return; }
+
+      const login_id = document.getElementById('s-stu-loginid').value.trim();
+      const pin = document.getElementById('s-stu-pin').value.trim();
+      const joinCode = document.getElementById('s-join-code').value.trim();
+      if (!/^\d{4}$/.test(pin)) { alert('비밀번호는 숫자 4자리로 입력하세요.'); return; }
+      const pin_hash = await sha256(pin);
+      const consent_data = { generalAgreed: genOk, sensitiveAgreed: senOk, researchAgreed: resOk, guardianConfirmed: isUnder14 ? gChecked : null, guardianName: isUnder14 ? gName : '', agreedAt: new Date().toISOString() };
+      const payload = { id: 's_' + Date.now(), login_id, student_number, real_name, grade_class, school_grade, gender, sport_type, custom_ratios, height: 170, weight, rest_hr, pin_hash, skill_tests: [], consent_data, note: '', logs: [] };
+      if (isCloud) {
+        const { data } = await sb.rpc('sut_skill_register', { p_join_code: joinCode, p_admin_hash: adminPinHash, p_data: payload });
+        if (!data || !data.ok) { alert(data?.msg || '등록 실패'); return; }
+      } else {
+        if (!isAdmin && joinCode !== (localStorage.getItem(L_JOIN) || '2026')) { alert('가입 인증코드가 일치하지 않습니다.'); return; }
+        const arr = JSON.parse(localStorage.getItem(L_S) || '[]');
+        if (arr.some(s => s.login_id === login_id)) { alert('이미 사용 중인 아이디입니다.'); return; }
+        arr.unshift(payload); localStorage.setItem(L_S, JSON.stringify(arr));
+      }
+      closeModal('skill-form-modal'); refreshCurrentList();
+      alert(`✅ [🆔 ${login_id}] 개인정보 동의 확인 및 운동체력 등록 완료!`);
+    }
+  }
+
+  async function persistSkillUpdate(patch) {
+    if (!currentSkillStu) return;
+    if (isCloud) await sb.rpc('sut_skill_update', { p_id: currentSkillStu.id, p_auth_hash: isAdmin ? adminPinHash : currentSkillAuthHash, p_is_admin: isAdmin, p_data: patch });
+    else {
+      const a = JSON.parse(localStorage.getItem(L_S) || '[]');
+      const i = a.findIndex(x => x.id === currentSkillStu.id);
+      if (i !== -1) { a[i] = { ...a[i], ...patch }; localStorage.setItem(L_S, JSON.stringify(a)); }
+    }
+  }
+
+  async function deleteSkillStudent(id, name) {
+    if (!isAdmin || !confirm(`[${name}] 계정을 삭제하시겠습니까?`)) return;
+    if (isCloud) await sb.rpc('sut_skill_delete', { p_id: id, p_admin_hash: adminPinHash });
+    else localStorage.setItem(L_S, JSON.stringify(JSON.parse(localStorage.getItem(L_S) || '[]').filter(x => x.id !== id)));
+    goHomeCurrentMode();
+  }
+
+  function openSkillDetail(stu) {
+    currentSkillStu = stu;
+    if (!stu.logs) stu.logs = [];
+    if (!stu.skill_tests) stu.skill_tests = [];
+    document.getElementById('skill-dashboard-view').style.display = 'none';
+    document.getElementById('skill-detail-view').style.display = 'block';
+    const gInfo = gradeInfoMap[stu.school_grade] || gradeInfoMap.H1;
+    const spName = stu.sport_type === 'custom' ? '나만의 종목' : (sportPresets[stu.sport_type]?.name || '축구');
+    document.getElementById('s-det-title').textContent = `🆔 ${stu.login_id} · ${stu.student_number} ${stu.real_name}`;
+    document.getElementById('s-det-subtitle').textContent = `${gInfo.label} (${stu.gender === 'M' ? '남' : '여'}) · 선택 스포츠: ${spName} · 체중 ${stu.weight}kg`;
+
+    const localH = JSON.parse(localStorage.getItem(L_H) || '[]');
+    const matchedH = (healthList.length && healthList[0].paps_data ? healthList : localH).find(h => h.student_number === stu.student_number && h.real_name === stu.real_name);
+    const linkBanner = document.getElementById('s-paps-link-banner');
+    if (matchedH && matchedH.paps_data && matchedH.paps_data.power) {
+      const pw = matchedH.paps_data.power;
+      const pRes = calcHealthGrade(matchedH.school_grade, matchedH.gender, 'power', pw.event, pw.value);
+      linkBanner.style.display = 'block';
+      linkBanner.innerHTML = `🔗 <strong>건강체력(PAPS) 순발력 기록 자동 연동됨:</strong> ${papsEventMeta.power.events[pw.event].name} <strong>${pw.value}${papsEventMeta.power.events[pw.event].unit} (${pRes.grade}등급)</strong>`;
+    } else linkBanner.style.display = 'none';
+
+    document.getElementById('s-det-actions').innerHTML = `
+      <button class="btn btn-ghost" onclick="openSkillEditModal()">✏️ 종목·정보 수정</button>
+      <button class="btn btn-amber" onclick="openResetStudentPin('skill','${stu.id}','${stu.login_id}')">🔑 비번 변경</button>
+    `;
+
+    const ratios = stu.sport_type === 'custom' ? stu.custom_ratios : (sportPresets[stu.sport_type]?.ratios || sportPresets.soccer.ratios);
+    const note = stu.sport_type === 'custom' ? "학생이 직접 설정한 경기 체력 요소 비율입니다." : sportPresets[stu.sport_type].note;
+    const sortedKeys = Object.keys(ratios).filter(k => ratios[k] > 0).sort((a, b) => ratios[b] - ratios[a]);
+    const total = sortedKeys.reduce((acc, k) => acc + ratios[k], 0) || 100;
+
+    document.getElementById('s-ratio-panel').innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+        <strong style="font-size:14px; color:#93c5fd;">📊 [${spName}] 경기 체력 요소 중요도 순위 및 비율 분포</strong>
+        <span style="font-size:12px; color:#34d399; font-weight:700;">1순위 핵심: ${compNames[sortedKeys[0]]} (${ratios[sortedKeys[0]]}%)</span>
+      </div>
+      <div class="ratio-bar">
+        ${sortedKeys.map(k => {
+          const pct = Math.round((ratios[k] / total) * 100);
+          return `<div class="ratio-seg" style="width:${pct}%; background:${compColors[k]};">${compNames[k]} ${pct}%</div>`;
+        }).join('')}
+      </div>
+      <div class="ratio-legend">
+        ${sortedKeys.map((k, idx) => `<span><strong>${idx+1}위</strong> <span style="color:${compColors[k]};">●</span> ${compNames[k]} (${ratios[k]}%)</span>`).join('')}
+      </div>
+      <div style="font-size:12px; color:#cbd5e1; margin-top:8px;">💡 ${note}</div>
+    `;
+
+    document.getElementById('s-comp-sel').value = sortedKeys[0] || 'power';
+    onSkillCompChange();
+    updateSkillTestHint();
+    renderSkillTestTable();
+    renderSkillWlogPanel();
+  }
+
+  function switchSkillSubTab(tab) {
+    ['rx','test','wlog'].forEach(t => {
+      document.getElementById(`s-subtab-${t}`).classList.toggle('active', t === tab);
+      document.getElementById(`s-${t}-panel`).style.display = t === tab ? 'block' : 'none';
+    });
+    if (tab === 'test') renderSkillTestTable();
+    if (tab === 'wlog') renderSkillWlogPanel();
+  }
+
+  function onSkillCompChange() {
+    const comp = document.getElementById('s-comp-sel').value;
+    const theoryByComp = {
+      power: { rec: 'plyo', lit: "신장-단축 주기(SSC) 및 발화 빈도(Rate Coding) 원리에 따라, 최대 근력을 짧은 시간(0.2초 이내)에 폭발적으로 출력하는 플라이오메트릭과 대비 훈련이 순발력의 핵심입니다.", proxy: "🏫 현장 측정: 본인 최고 기록 대비 목표 거리 도달률(%) 콘 표식 또는 스톱워치 구간 초(sec)로 측정하세요." },
+      agility: { rec: 'circuit', lit: "신경근 감속 제어(Eccentric Deceleration) 및 방향 전환(COD) 역학에 따라, 무게중심을 낮추어 급정거한 뒤 첫 발을 폭발적으로 내딛는 콘·래더 서킷 훈련이 필수적입니다.", proxy: "🏫 현장 측정: 일리노이 민첩성 검사 또는 T-테스트 코스를 스톱워치로 계측하여 학계 규준과 비교하세요." },
+      speed: { rec: 'interval', lit: "스프린트 생체역학의 속도 저하 10% 이내 원칙에 따라, 중추신경계(CNS) 피로가 누적되기 전 세트당 거리를 짧게 제한하고 완전 휴식을 부여하는 인터벌 스프린트가 효과적입니다.", proxy: "🏫 현장 측정: 최고 기록 대비 속도 비율(%)로 환산된 목표 주파 시간(sec)을 스톱워치로 확인하세요." },
+      balance: { rec: 'core', lit: "고유수용성 감각(Proprioception) 및 전정기관 통합 원리에 따라, 지지 기저면 축소(외발 지지)와 시각 제한 조건에서 발목·코어 안정화 근육의 미세 조절 능력을 기릅니다.", proxy: "🏫 현장 측정: 황새 서기 검사(까치발) 또는 눈 감고 외발서기 유지 시간(초)을 스톱워치로 계측하세요." },
+      coordination: { rec: 'circuit', lit: "운동학습(Motor Learning) 이론에 따라, 일정한 외부 리듬(메트로놈 템포)과 상·하지 분리 협응 과제를 점진적으로 복잡화할 때 신경 경로의 자동화가 촉진됩니다.", proxy: "🏫 현장 측정: 내장 메트로놈(BPM) 박자 통제 및 벽 공 던지고 받기(30초 성공 횟수)로 측정하세요." },
+      reaction: { rec: 'interval', lit: "인지-운동 반응시간(Choice Reaction Time) 원리에 따라, 예측 불가능한 시각·청각 신호에 즉각 반응하여 첫 동작을 개시하는 자극-반응 인터벌 드릴이 효과적입니다.", proxy: "🏫 현장 측정: 짝의 구령·수신호 반응 출발 또는 30초 벽 공 던지고 받기 횟수로 반응 협응을 점검하세요." }
+    }[comp];
+
+    document.getElementById('s-theory-box').innerHTML = `
+      <div class="theory-title"><span>📚 [${compNames[comp]}] 경기 체력 트레이닝 원리 및 현장 측정 가이드</span></div>
+      <div class="theory-body">${theoryByComp.lit}</div>
+      <div class="field-proxy-pill">${theoryByComp.proxy}</div>
+      <div class="safety-banner">⚠️ 안전 수칙: 민첩성·스피드 방향 전환 시 미끄러짐을 방지하기 위해 실내화 바닥 이물질을 제거하고, 다른 모둠과 동선이 겹치지 않도록 콘 간격을 최소 2m 이상 확보하세요.</div>
+    `;
+
+    const methods = [
+      { k: 'plyo', n: '플라이오메트릭 트레이닝 (Plyometric)' },
+      { k: 'circuit', n: '서킷 트레이닝 (Circuit)' },
+      { k: 'interval', n: '인터벌 트레이닝 (Interval)' },
+      { k: 'core', n: '코어 트레이닝 (Core)' },
+      { k: 'weight', n: '웨이트 트레이닝 (Weight)' }
+    ];
+    const mSel = document.getElementById('s-method-sel');
+    mSel.innerHTML = methods.map(m => `<option value="${m.k}">${m.k === theoryByComp.rec ? '⭐ [학술 추천] ' : ''}${m.n}</option>`).join('');
+    mSel.value = theoryByComp.rec;
+    onSkillMethodChange();
+  }
+
+  function onSkillMethodChange() {
+    const comp = document.getElementById('s-comp-sel').value;
+    const drills = {
+      power: ["⭐ [추천] 연속 콘 넘기 & 스틱 랜딩 점프", "⭐ [추천] 메디신볼 가슴 밀어 던지기", "계단/스텝박스 연속 도약", "서전트 수직 점프 터치"],
+      agility: ["⭐ [추천] T-코스 전진·사이드셔플·백스텝", "⭐ [추천] 5-10-5 프로 애질리티 셔틀", "지그재그 콘 급감속 방향전환", "사다리(래더) 인앤아웃 고속 스텝"],
+      speed: ["⭐ [추천] 20m·30m 가속 스프린트 (완전 휴식)", "⭐ [추천] 플라잉 20m 최고 속도 유지 질주", "크라우치/스탠딩 스타트 반응 15m 대시", "템포 러닝 (80~85% 자세 리듬)"],
+      balance: ["⭐ [추천] 황새 서기(까치발) 균형 유지 훈련", "⭐ [추천] 외발 스쿼트 터치 & 코어 버티기", "눈 감고 외발 서기 (고유수용감각)", "짐볼/밸런스패드 위 패스 받기"],
+      coordination: ["⭐ [추천] 메트로놈 박자 맞춤 래더 스텝", "⭐ [추천] 2m 벽 공 양손 교대 던지고 받기", "상체 패스 + 하체 사이드스텝 복합 드릴", "줄넘기 이중뛰기 및 교차 리듬"],
+      reaction: ["⭐ [추천] 짝 수신호/색깔 콘 반응 방향전환", "⭐ [추천] 청각 신호 스타트 10m 왕복 대시", "불규칙 바운드 반응 볼 캐치", "거울 모드 짝 스텝 따라하기"]
+    }[comp];
+    document.getElementById('s-drill-sel').innerHTML = drills.map(x => `<option value="${x.replace('⭐ [추천] ','')}">${x}</option>`).join('');
+
+    const m1 = document.getElementById('s-stage1-metric');
+    const tb = document.getElementById('s-track-badge');
+    if (comp === 'power' || comp === 'speed' || comp === 'agility') {
+      tb.textContent = "트랙 3: 고속 신경계·파워 지표";
+      m1.innerHTML = `<option value="speed_zone">⏱️ 최고 기록 대비 속도 비율 3구간 (sec)</option><option value="cr10">📊 노력도 척도 (Borg CR-10)</option>`;
+    } else {
+      tb.textContent = "트랙 4: 신경근 조절·협응 지표";
+      m1.innerHTML = `<option value="bpm">🎵 메트로놈 수행 템포 (BPM)</option><option value="diff">🎯 과제 난이도 3단계 (기저면·시각·반응)</option>`;
+    }
+    onSkillMetricChange();
+  }
+
+  function onSkillMetricChange() {
+    const stu = currentSkillStu;
+    const lv = parseInt(document.getElementById('s-level-sel').value) - 1;
+    const metric = document.getElementById('s-stage1-metric').value;
+    const zSel = document.getElementById('s-stage2-zone');
+    const sSel = document.getElementById('s-stage3-sets');
+    const vSel = document.getElementById('s-stage4-vol');
+
+    const sprintRec = (stu.skill_tests || []).filter(t => t.testType === 'sprint50').pop();
+    const baseSec = sprintRec ? sprintRec.value : 7.5;
+
+    if (metric === 'speed_zone') {
+      const z = [
+        `1구간 기술·리듬 (80~85% 속도 · ${(baseSec/0.82).toFixed(2)}초 주파)`,
+        `2구간 이완 고속 (90~95% 속도 · ${(baseSec/0.92).toFixed(2)}초 주파)`,
+        `3구간 최대 신경계 (96~100% 속도 · ${baseSec.toFixed(2)}초대 도전)`
+      ];
+      zSel.innerHTML = z.map((txt, i) => `<option value="${txt}">${i === lv ? '⭐ [추천] ' : ''}${txt}</option>`).join('');
+      zSel.selectedIndex = lv;
+    } else if (metric === 'cr10') {
+      const z = ["Borg CR-10 6점 (자세 집중 서브맥시멀)", "Borg CR-10 8점 (고속 제어 · 권장)", "Borg CR-10 10점 (최대 폭발 전력)"];
+      zSel.innerHTML = z.map((txt, i) => `<option value="${txt}">${i === lv ? '⭐ [추천] ' : ''}${txt}</option>`).join('');
+      zSel.selectedIndex = lv;
+    } else if (metric === 'bpm') {
+      const z = ["80 BPM (정확한 발 위치·자세 제어)", "110 BPM (경기 리듬 가속 · 권장)", "140 BPM (고속 신경근 전환)"];
+      zSel.innerHTML = z.map((txt, i) => `<option value="${txt}">${i === lv ? '⭐ [추천] ' : ''}${txt}</option>`).join('');
+      zSel.selectedIndex = lv;
+    } else {
+      const z = ["1단계 기초: 양발 지지 · 눈 뜨고 · 정지 목표", "2단계 감각제한: 외발 지지(기저면 축소) 또는 눈 감기", "3단계 복합반응: 짝 신호·공 패스 즉각 반응 결합"];
+      zSel.innerHTML = z.map((txt, i) => `<option value="${txt}">${i === lv ? '⭐ [추천] ' : ''}${txt}</option>`).join('');
+      zSel.selectedIndex = lv;
+    }
+
+    sSel.innerHTML = `<option value="2세트">2세트 (입문 적응)</option><option value="3세트" selected>⭐ [추천] 3세트 (표준 권장)</option><option value="4세트">4세트 (숙련 강화)</option>`;
+    vSel.innerHTML = `<option value="5회 (최대 출력 · 피로 방지)" selected>⭐ [추천] 5회 (최대 출력)</option><option value="8회 (리듬 반복)">8회 (리듬 반복)</option><option value="30초 연속 수행">30초 연속 수행</option>`;
+    onSkillDesignerUpdate();
+  }
+
+  function onSkillDesignerUpdate() {
+    const comp = document.getElementById('s-comp-sel').value;
+    const methodTxt = document.getElementById('s-method-sel').options[document.getElementById('s-method-sel').selectedIndex].text.replace('⭐ [학술 추천] ','');
+    const drill = document.getElementById('s-drill-sel').value;
+    const zone = document.getElementById('s-stage2-zone').value;
+    const sets = document.getElementById('s-stage3-sets').value;
+    const vol = document.getElementById('s-stage4-vol').value;
+
+    document.getElementById('s-rest-guide').innerHTML = (comp === 'power' || comp === 'speed')
+      ? "⏱️ 권장 휴식 시간: 중추신경계(CNS)와 인원성(ATP-PCr) 회복을 위해 세트 간 <strong>2분 이상 완전 휴식</strong>을 보장하세요."
+      : "⏱️ 권장 휴식 시간: 동작 정확도 유지를 위해 세트 간 <strong>60~90초 휴식</strong>을 권장합니다.";
+
+    document.getElementById('s-routine-preview').innerHTML = `
+      <div class="exercise-item">
+        <div>
+          <span class="ex-role">${methodTxt}</span>
+          <span class="ex-info">${drill}</span>
+          <div class="ex-detail">학생 설계 처방: <strong>${zone} · ${sets} · ${vol}</strong></div>
+        </div>
+        <div class="ex-right-box">
+          <div class="ex-dosage">${sets} × ${vol}</div>
+          <button type="button" class="btn btn-primary" style="padding:6px 11px; font-size:12px;" onclick="quickSendSkillToLog()">✅ 이 처방으로 오늘 운동일지 작성 →</button>
+        </div>
+      </div>`;
+  }
+
+  function quickSendSkillToLog() {
+    const comp = document.getElementById('s-comp-sel').value;
+    const methodTxt = document.getElementById('s-method-sel').options[document.getElementById('s-method-sel').selectedIndex].text.replace('⭐ [학술 추천] ','').split(' ')[0];
+    const drill = document.getElementById('s-drill-sel').value;
+    const zone = document.getElementById('s-stage2-zone').value;
+    const sets = document.getElementById('s-stage3-sets').value;
+    const vol = document.getElementById('s-stage4-vol').value;
+    const rat = document.getElementById('s-rationale-input').value.trim();
+
+    switchSkillSubTab('wlog');
+    document.getElementById('s-wlog-comp').value = comp;
+    document.getElementById('s-wlog-ex').value = `[${methodTxt}] ${drill}`;
+    document.getElementById('s-wlog-plan').value = `${zone} · ${sets} · ${vol}`;
+    if (rat) document.getElementById('s-wlog-self').value = `설계근거: ${rat}`;
+    document.getElementById('s-wlog-actual').focus();
+  }
+
+  const skillTestMeta = {
+    stork: { name: "황새 서기 검사 (Stork Stand)", unit: "초", dir: "max", protocol: "한 발로 서서 반대 발바닥을 지지 무릎 안쪽에 대고, 양손을 허리에 얹은 채 발뒤꿈치를 든 까치발로 균형을 잃을 때까지 버틴 시간(초)" },
+    unipedal: { name: "눈 감고 외발서기 (Unipedal Stance)", unit: "초", dir: "max", protocol: "양팔을 가슴에 교차하고 눈을 감은 채 한 발로 버틴 시간(초, 상한 45초)" },
+    illinois: { name: "일리노이 민첩성 검사 (Illinois Agility)", unit: "초", dir: "min", protocol: "10m×5m 코스의 직선 질주 및 중앙 콘 지그재그 회전 주파 시간(초)" },
+    ttest: { name: "T-테스트 (Agility T-Test)", unit: "초", dir: "min", protocol: "T자형(10m×10m) 코스 전진 질주·사이드 셔플·백페달링 주파 시간(초)" },
+    walltoss: { name: "벽 공 던지고 받기 (Wall Toss)", unit: "회", dir: "max", protocol: "벽에서 2m 떨어진 선 뒤에서 한 손으로 테니스공을 벽에 던지고 반대 손으로 받는 동작의 30초 총 성공 횟수" },
+    sprint50: { name: "50m 달리기", unit: "초", dir: "min", protocol: "스탠딩 스타트 신호 후 50m 결승선 통과 시간(초)" },
+    longjump: { name: "제자리멀리뛰기", unit: "cm", dir: "max", protocol: "구름선 뒤에서 양발 동시 도약 후 가장 가까운 착지 지점까지의 수평 거리(cm)" }
+  };
+
+  function evalSkillNorm(testType, val, gradeCode, gender) {
+    const v = parseFloat(val);
+    const stage = (gradeInfoMap[gradeCode] || gradeInfoMap.H1).stage;
+    const adj = stage === 'elem' ? 0.82 : (stage === 'mid' ? 0.92 : 1.0);
+    const isM = gender === 'M';
+
+    if (testType === 'stork') {
+      const c = [50, 40, 25, 10].map(x => Math.round(x * adj));
+      if (v >= c[0]) return "🌟 우수 (학계 연령 규준 상위)";
+      if (v >= c[1]) return "🔵 좋음";
+      if (v >= c[2]) return "🟢 보통";
+      if (v >= c[3]) return "🟡 미흡";
+      return "🔴 부족 (균형 보완 필요)";
+    }
+    if (testType === 'unipedal') {
+      const c = [25, 10].map(x => Math.round(x * adj));
+      if (v >= c[0]) return "🌟 양호 (고유수용감각 정상)";
+      if (v >= c[1]) return "🟢 보통";
+      return "🟡 저하 (감각통합 훈련 권장)";
+    }
+    if (testType === 'walltoss') {
+      const c = [35, 30, 20, 15].map(x => Math.round(x * adj));
+      if (v >= c[0]) return "🌟 우수";
+      if (v >= c[1]) return "🔵 좋음";
+      if (v >= c[2]) return "🟢 보통";
+      if (v >= c[3]) return "🟡 미흡";
+      return "🔴 부족";
+    }
+    if (testType === 'illinois') {
+      const base = isM ? [15.2, 16.1, 18.1] : [17.0, 17.9, 21.7];
+      const c = base.map(x => Math.round((x / adj) * 10) / 10);
+      if (v < c[0]) return "🌟 우수";
+      if (v <= c[1]) return "🔵 좋음";
+      if (v <= c[2]) return "🟢 보통";
+      return "🟡 미흡 (방향전환 보완)";
+    }
+    if (testType === 'ttest') {
+      const base = isM ? [9.5, 10.5, 11.5] : [10.5, 11.5, 12.5];
+      const c = base.map(x => Math.round((x / adj) * 10) / 10);
+      if (v < c[0]) return "🌟 우수";
+      if (v <= c[1]) return "🔵 좋음";
+      if (v <= c[2]) return "🟢 보통";
+      return "🟡 미흡";
+    }
+    if (testType === 'sprint50') return `PAPS 연령·성별 ${calcHealthGrade(gradeCode, gender, 'power', 'run50', v).grade}등급 수준`;
+    if (testType === 'longjump') return `PAPS 연령·성별 ${calcHealthGrade(gradeCode, gender, 'power', 'longjump', v).grade}등급 수준`;
+    return "측정 완료";
+  }
+
+  function updateSkillTestHint() {
+    const t = document.getElementById('s-test-type').value;
+    const m = skillTestMeta[t];
+    document.getElementById('s-test-unit-hint').textContent = `(${m.unit})`;
+    document.getElementById('s-test-protocol-hint').textContent = `📖 측정 방법: ${m.protocol}`;
+    document.getElementById('s-test-date').value = getTodayStr();
+  }
+
+  async function addSkillTestRecord(e) {
+    e.preventDefault();
+    const stu = currentSkillStu;
+    stu.skill_tests.push({
+      date: document.getElementById('s-test-date').value,
+      testType: document.getElementById('s-test-type').value,
+      value: parseFloat(document.getElementById('s-test-val').value)
+    });
+    await persistSkillUpdate({ skill_tests: stu.skill_tests });
+    document.getElementById('s-test-val').value = '';
+    renderSkillTestTable();
+    onSkillMetricChange();
+  }
+
+  function renderSkillTestTable() {
+    const stu = currentSkillStu;
+    const list = (stu.skill_tests || []).map((t, i) => ({ ...t, _idx: i })).reverse();
+    document.getElementById('s-test-tbody').innerHTML = list.map(t => {
+      const m = skillTestMeta[t.testType];
+      const evalTxt = evalSkillNorm(t.testType, t.value, stu.school_grade, stu.gender);
+      return `<tr><td>${t.date}</td><td>${m.name}</td><td><strong>${t.value}${m.unit}</strong></td><td><strong>${evalTxt}</strong></td><td><button class="btn btn-rose" style="padding:3px 7px; font-size:11px;" onclick="deleteSkillTest(${t._idx})">삭제</button></td></tr>`;
+    }).join('') || `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding:20px;">측정된 필드 테스트 기록이 없습니다.</td></tr>`;
+  }
+
+  async function deleteSkillTest(idx) {
+    currentSkillStu.skill_tests.splice(idx, 1);
+    await persistSkillUpdate({ skill_tests: currentSkillStu.skill_tests });
+    renderSkillTestTable();
+  }
+
+  function renderSkillWlogPanel() {
+    const stu = currentSkillStu;
+    const days = new Set((stu.logs || []).map(l => l.date)).size;
+    document.getElementById('s-wlog-summary').innerHTML = `
+      <div class="summary-item"><div class="label">총 누적 운동일수</div><div class="val" style="color:#60a5fa;">${days}일</div></div>
+      <div class="summary-item"><div class="label">총 누적 훈련 일지</div><div class="val">${(stu.logs || []).length}건</div></div>`;
+    document.getElementById('s-wlog-date').value = getTodayStr();
+    const rows = (stu.logs || []).map((l, i) => ({ ...l, _idx: i })).sort((a, b) => b.date.localeCompare(a.date));
+    document.getElementById('s-wlog-tbody').innerHTML = rows.map(l => `<tr>
+      <td style="white-space:nowrap;">${l.date}</td>
+      <td><span class="level-badge">${compNames[l.comp] || l.comp}</span></td>
+      <td><strong>${l.exercise}</strong><div style="font-size:11.5px; color:var(--text-sub);">${l.plan}</div></td>
+      <td><span class="rpe-badge">${l.actual}</span></td>
+      <td style="font-size:12px;"><div>🙋 자기: ${l.selfEval || '-'}</div><div style="color:#6ee7b7;">🤝 동료: ${l.peerEval || '-'}</div></td>
+      <td><button class="btn btn-rose" style="padding:3px 7px; font-size:11px;" onclick="deleteSkillLog(${l._idx})">삭제</button></td>
+    </tr>`).join('') || `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:20px;">누적된 운동일지가 없습니다.</td></tr>`;
+  }
+
+  async function addSkillWorkoutLog(e) {
+    e.preventDefault();
+    const stu = currentSkillStu;
+    stu.logs.unshift({
+      date: document.getElementById('s-wlog-date').value,
+      comp: document.getElementById('s-wlog-comp').value,
+      exercise: document.getElementById('s-wlog-ex').value.trim(),
+      plan: document.getElementById('s-wlog-plan').value.trim(),
+      actual: document.getElementById('s-wlog-actual').value.trim(),
+      selfEval: document.getElementById('s-wlog-self').value.trim(),
+      peerEval: document.getElementById('s-wlog-peer').value.trim()
+    });
+    await persistSkillUpdate({ logs: stu.logs });
+    ['ex','plan','actual','self','peer'].forEach(k => document.getElementById(`s-wlog-${k}`).value = '');
+    renderSkillWlogPanel();
+    alert('✅ 경기 체력 누적 운동일지가 저장되었습니다!');
+  }
+
+  async function deleteSkillLog(idx) {
+    currentSkillStu.logs.splice(idx, 1);
+    await persistSkillUpdate({ logs: currentSkillStu.logs });
+    renderSkillWlogPanel();
+  }
+
+  /* ==================== 7. 4-IN-1 INTERACTIVE FIELD TOOLS & CSV ==================== */
+  let hrTimerInt = null, hrTimeLeft = 15.0, metroInt = null, metroRunning = false, audioCtx = null;
+  let toolCopyStrings = {
+    hr: "",
+    metro: "메트로놈 100 BPM 수행",
+    talk: "",
+    rir: ""
+  };
+
+  function beep(freq = 880, dur = 0.12) {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+      osc.frequency.value = freq; osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.start(); gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+      osc.stop(audioCtx.currentTime + dur);
+    } catch (e) {}
+  }
+
+  function startHrTimer() {
+    resetHrTimer();
+    beep(660, 0.15);
+    hrTimerInt = setInterval(() => {
+      hrTimeLeft = Math.max(0, Math.round((hrTimeLeft - 0.1) * 10) / 10);
+      document.getElementById('hr-timer-disp').textContent = hrTimeLeft.toFixed(1);
+      if (hrTimeLeft <= 0) {
+        clearInterval(hrTimerInt); hrTimerInt = null;
+        beep(1046, 0.35);
+        document.getElementById('hr-15s-count').focus();
+      }
+    }, 100);
+  }
+  function resetHrTimer() {
+    if (hrTimerInt) { clearInterval(hrTimerInt); hrTimerInt = null; }
+    hrTimeLeft = 15.0;
+    document.getElementById('hr-timer-disp').textContent = '15.0';
+  }
+  function calcHr15s() {
+    const c = parseInt(document.getElementById('hr-15s-count').value) || 0;
+    if (c > 0) {
+      const bpm = c * 4;
+      document.getElementById('hr-15s-result').innerHTML = `환산 심박수: <strong>${bpm} bpm</strong> (15초 ${c}회)`;
+      toolCopyStrings.hr = `${bpm} bpm (15초 ${c}회)`;
+    } else {
+      document.getElementById('hr-15s-result').textContent = '측정 대기 중 (입력 시 ×4 자동 환산)';
+      toolCopyStrings.hr = '';
+    }
+  }
+
+  function updateMetroBpm(val) {
+    document.getElementById('metro-bpm-disp').innerHTML = `${val} <span style="font-size:14px;">BPM</span>`;
+    document.getElementById('metro-result-txt').innerHTML = `설정 템포: <strong>${val} BPM</strong>`;
+    toolCopyStrings.metro = `메트로놈 ${val} BPM 수행`;
+    if (metroRunning) { toggleMetronome(); toggleMetronome(); }
+  }
+  function toggleMetronome() {
+    const btn = document.getElementById('metro-toggle-btn');
+    if (metroRunning) {
+      clearInterval(metroInt); metroInt = null; metroRunning = false;
+      btn.textContent = '▶ 박자 소리 시작';
+    } else {
+      const bpm = parseInt(document.getElementById('metro-slider').value) || 100;
+      beep(800, 0.08);
+      metroInt = setInterval(() => beep(800, 0.08), Math.round(60000 / bpm));
+      metroRunning = true;
+      btn.textContent = '⏹ 박자 정지';
+    }
+  }
+
+  function selectTalkStage(stage) {
+    const clsMap = { 1: 'active-g', 2: 'active-b', 3: 'active-y', 4: 'active-r' };
+    [1,2,3,4].forEach(i => {
+      const b = document.getElementById(`talk-btn-${i}`);
+      b.className = 'seg-btn' + (i === stage ? ` ${clsMap[i]}` : '');
+    });
+    const info = {
+      1: {
+        html: `<strong style="color:#6ee7b7;">1단계 (저강도 · VT1 미만)</strong><br>HRR 50~60% 미만 · 준비운동 및 기초 유산소 적정 구간`,
+        copy: `말하기 1단계(노래 가능 · 저강도 VT1 미만)`
+      },
+      2: {
+        html: `<strong style="color:#93c5fd;">2단계 (중강도 · VT1 부근)</strong><br>HRR 60~75% · <strong>건강체력(심폐·체지방) 향상 주 권장 구간</strong>`,
+        copy: `말하기 2단계(한 문장 완결 · 중강도 VT1 부근)`
+      },
+      3: {
+        html: `<strong style="color:#fde047;">3단계 (고강도 · VT1~VT2)</strong><br>HRR 75~85% · <strong>인터벌 트레이닝 및 상위 등급 목표 구간</strong>`,
+        copy: `말하기 3단계(2~3단어 끊김 · 고강도 VT1~VT2)`
+      },
+      4: {
+        html: `<strong style="color:#fda4af;">4단계 (최대 강도 · VT2 초과)</strong><br>HRR 85% 이상 · 무산소 한계 도달 (속도를 줄여 걷기 전환 권장)`,
+        copy: `말하기 4단계(1단어 발화 · 최대강도 VT2 초과)`
+      }
+    }[stage];
+    document.getElementById('talk-result-txt').innerHTML = info.html;
+    toolCopyStrings.talk = info.copy;
+  }
+
+  function selectRirStage(rir) {
+    const clsMap = { 4: 'active-g', 3: 'active-b', 2: 'active-b', 1: 'active-y', 0: 'active-r' };
+    [4,3,2,1,0].forEach(i => {
+      const b = document.getElementById(`rir-btn-${i}`);
+      b.className = 'seg-btn center-txt' + (i === rir ? ` ${clsMap[i]}` : '');
+    });
+    const info = {
+      4: {
+        html: `<strong style="color:#6ee7b7;">RIR 4+ (자세 습득 · 성장기 안전)</strong><br>초·중학생 권장 안전 강도 · 자세 안정화 후 부하 상향 가능`,
+        copy: `RIR 4+ (자세 습득·안전 구간)`
+      },
+      3: {
+        html: `<strong style="color:#93c5fd;">RIR 3 (청소년 근지구력 표준)</strong><br>초·중·고 전 학년 안전하고 효과적인 표준 트레이닝 강도`,
+        copy: `RIR 3 (표준 근지구력 구간)`
+      },
+      2: {
+        html: `<strong style="color:#93c5fd;">RIR 2 (고등학생 근력·근비대 표준)</strong><br>근력 향상에 최적인 자극 (초·중학생은 RIR 3 이상 권장)`,
+        copy: `RIR 2 (근력 향상 적정 구간)`
+      },
+      1: {
+        html: `<strong style="color:#fde047;">RIR 1 (고강도 근력 구간)</strong><br>고등학생 숙련자 상한선 (성장기 초·중학생은 부하 낮춤 권장)`,
+        copy: `RIR 1 (고강도 근력 구간)`
+      },
+      0: {
+        html: `<strong style="color:#fda4af;">RIR 0 (최대 한계점 · 실패 지점)</strong><br>관절·성장판 부상 위험이 높으므로 다음 세트 중량/횟수를 낮추세요.`,
+        copy: `RIR 0 (최대 한계점 도달)`
+      }
+    }[rir];
+    document.getElementById('rir-result-txt').innerHTML = info.html;
+    toolCopyStrings.rir = info.copy;
+  }
+
+  function copyToolText(type) {
+    const txt = toolCopyStrings[type];
+    if (!txt) { alert('먼저 값을 입력하거나 단계를 선택해 주세요.'); return; }
+    navigator.clipboard.writeText(txt).then(() => {
+      alert(`📋 복사 완료: "${txt}"\n운동일지의 [실제 측정 강도] 또는 [동료평가] 칸에 붙여넣기(Ctrl+V) 하세요.`);
+    }).catch(() => {
+      prompt('아래 측정 결과를 복사(Ctrl+C)하세요:', txt);
+    });
+  }
+
+  function stopAllAudioTools() {
+    resetHrTimer();
+    if (metroRunning) toggleMetronome();
+  }
+
+  function exportResearchCSV() {
+    if (!isAdmin) return;
+    let csv = "\uFEFF";
+    if (currentTopMode === 'health') {
+      const agreed = healthList.filter(s => s.consent_data?.researchAgreed === true);
+      if (!agreed.length) { alert('연구 활용 및 교육 효과 분석에 동의한 학생 데이터가 없습니다.'); return; }
+      csv += "참여자코드,학교급,성별,누적운동일수,총훈련건수,자기주도설계수정횟수,심폐_사전,심폐_사후,심폐_변화량,유연성_사전,유연성_사후,유연성_변화량,근지구력_사전,근지구력_사후,근지구력_변화량,순발력_사전,순발력_사후,순발력_변화량,BMI_사전,BMI_사후\n";
+      agreed.forEach((s, idx) => {
+        const pCode = `P${String(idx + 1).padStart(3, '0')}`;
+        const days = new Set((s.logs || []).map(l => l.date)).size;
+        const selfDesignCnt = (s.logs || []).filter(l => (l.selfEval || '').includes('설계근거:')).length;
+        const getPrePost = d => {
+          const rs = (s.records || []).filter(r => r.domain === d).sort((a,b) => a.date.localeCompare(b.date));
+          const pre = rs.length ? rs[0].value : s.paps_data[d].value;
+          const post = rs.length ? rs[rs.length - 1].value : s.paps_data[d].value;
+          const diff = Math.round((post - pre) * 100) / 100;
+          return `${pre},${post},${diff}`;
+        };
+        const bmiRs = (s.records || []).filter(r => r.domain === 'bmi').sort((a,b) => a.date.localeCompare(b.date));
+        const bPre = bmiRs.length ? bmiRs[0].value : s.paps_data.bmi.value;
+        const bPost = bmiRs.length ? bmiRs[bmiRs.length - 1].value : s.paps_data.bmi.value;
+        csv += `"${pCode}","${(gradeInfoMap[s.school_grade]||gradeInfoMap.H1).label}","${s.gender}",${days},${(s.logs||[]).length},${selfDesignCnt},${getPrePost('cardio')},${getPrePost('flex')},${getPrePost('strength')},${getPrePost('power')},${bPre},${bPost}\n`;
+      });
+    } else {
+      const agreed = skillList.filter(s => s.consent_data?.researchAgreed === true);
+      if (!agreed.length) { alert('연구 활용 및 교육 효과 분석에 동의한 학생 데이터가 없습니다.'); return; }
+      csv += "참여자코드,학교급,성별,선택스포츠,누적운동일수,총훈련건수,자기주도설계수정횟수,대표필드테스트,사전기록,사후기록,기록변화량\n";
+      agreed.forEach((s, idx) => {
+        const pCode = `P${String(idx + 1).padStart(3, '0')}`;
+        const days = new Set((s.logs || []).map(l => l.date)).size;
+        const selfDesignCnt = (s.logs || []).filter(l => (l.selfEval || '').includes('설계근거:')).length;
+        const spName = s.sport_type === 'custom' ? '나만의종목' : (sportPresets[s.sport_type]?.name || '');
+        const ts = (s.skill_tests || []).slice().sort((a,b) => a.date.localeCompare(b.date));
+        let tName = '-', pre = '', post = '', diff = '';
+        if (ts.length) {
+          const firstType = ts[0].testType;
+          const sameTs = ts.filter(x => x.testType === firstType);
+          tName = skillTestMeta[firstType]?.name || firstType;
+          pre = sameTs[0].value;
+          post = sameTs[sameTs.length - 1].value;
+          diff = Math.round((post - pre) * 100) / 100;
+        }
+        csv += `"${pCode}","${(gradeInfoMap[s.school_grade]||gradeInfoMap.H1).label}","${s.gender}","${spName}",${days},${(s.logs||[]).length},${selfDesignCnt},"${tName}",${pre},${post},${diff}\n`;
+      });
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    a.download = `StepUp_${currentTopMode}_연구효과분석_비식별통계_${getTodayStr()}.csv`; a.click();
+  }
+
+  function exportSummaryCSV() {
+    if (!isAdmin) return;
+    let csv = "\uFEFF";
+    if (currentTopMode === 'health') {
+      csv += "아이디,학번,이름,학년,성별,연구활용동의,신장,체중,BMI,체지방률,누적운동일수,심폐등급,유연성등급,근지구력등급,순발력등급,BMI등급\n";
+      healthList.forEach(s => {
+        const days = new Set((s.logs || []).map(l => l.date)).size;
+        const g = d => `${calcHealthGrade(s.school_grade, s.gender, d, s.paps_data[d].event, s.paps_data[d].value).grade}등급`;
+        const resOk = s.consent_data?.researchAgreed ? 'Y' : 'N';
+        csv += `"${s.login_id}","${s.student_number}","${s.real_name}","${(gradeInfoMap[s.school_grade]||gradeInfoMap.H1).label}","${s.gender}","${resOk}",${s.height},${s.weight},${s.paps_data.bmi.value},${s.paps_data.bmi.bf},${days},"${g('cardio')}","${g('flex')}","${g('strength')}","${g('power')}","${g('bmi')}"\n`;
+      });
+    } else {
+      csv += "아이디,학번,이름,학년,성별,연구활용동의,선택스포츠,누적운동일수,누적훈련건수\n";
+      skillList.forEach(s => {
+        const days = new Set((s.logs || []).map(l => l.date)).size;
+        const spName = s.sport_type === 'custom' ? '나만의종목' : (sportPresets[s.sport_type]?.name || '');
+        const resOk = s.consent_data?.researchAgreed ? 'Y' : 'N';
+        csv += `"${s.login_id}","${s.student_number}","${s.real_name}","${(gradeInfoMap[s.school_grade]||gradeInfoMap.H1).label}","${s.gender}","${resOk}","${spName}",${days},${(s.logs||[]).length}\n`;
+      });
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    a.download = `StepUp_${currentTopMode}_수행평가요약_${getTodayStr()}.csv`; a.click();
+  }
+
+  function exportLogsCSV() {
+    if (!isAdmin) return;
+    let csv = "\uFEFF아이디,학번,이름,운동일자,영역/요소,수행운동명,설정한4단계처방,실제측정강도,자기평가,동료평가\n";
+    const list = currentTopMode === 'health' ? healthList : skillList;
+    list.forEach(s => {
+      (s.logs || []).forEach(l => {
+        const cat = currentTopMode === 'health' ? (papsEventMeta[l.domain]?.name || l.domain) : (compNames[l.comp] || l.comp);
+        csv += `"${s.login_id}","${s.student_number}","${s.real_name}","${l.date}","${cat}","${(l.exercise||'').replace(/"/g,'""')}","${(l.plan||'').replace(/"/g,'""')}","${(l.actual||'').replace(/"/g,'""')}","${(l.selfEval||'').replace(/"/g,'""')}","${(l.peerEval||'').replace(/"/g,'""')}"\n`;
+      });
+    });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    a.download = `StepUp_${currentTopMode}_운동일지전체_${getTodayStr()}.csv`; a.click();
+  }
+
+  function drawSVGChart(cid, recs, targetVal, unit, dir, goalText) {
+    const el = document.getElementById(cid);
+    if (!recs.length) { el.innerHTML = `<div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px;">재측정 기록을 추가하면 성장 그래프가 표시됩니다.</div>`; return; }
+    const W = 640, H = 190, pL = 45, pR = 25, pT = 24, pB = 30;
+    const vals = recs.map(r => r.value).concat([targetVal]);
+    let minV = Math.min(...vals), maxV = Math.max(...vals);
+    const sp = (maxV - minV) || 10; minV -= sp * 0.15; maxV += sp * 0.15;
+    const gx = i => recs.length === 1 ? W / 2 : pL + (i / (recs.length - 1)) * (W - pL - pR);
+    const gy = v => dir === 'min' ? pT + ((v - minV) / (maxV - minV)) * (H - pT - pB) : H - pB - ((v - minV) / (maxV - minV)) * (H - pT - pB);
+    const ty = gy(targetVal), pts = recs.map((r, i) => ({ x: gx(i), y: gy(r.value), val: r.value, d: r.date.slice(5) }));
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%; max-width:${W}px; background:#0b0f19; border-radius:8px; border:1px solid #232d42;">
+      <line x1="${pL}" y1="${ty}" x2="${W-pR}" y2="${ty}" stroke="#10b981" stroke-width="1.5" stroke-dasharray="5,5" />
+      <text x="${W-pR}" y="${ty-5}" fill="#34d399" font-size="11" font-weight="700" text-anchor="end">${goalText}</text>
+      ${pts.length > 1 ? `<polyline fill="none" stroke="#3b82f6" stroke-width="3" points="${pts.map(p => `${p.x},${p.y}`).join(' ')}" />` : ''}
+      ${pts.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#60a5fa"/><text x="${p.x}" y="${p.y-9}" fill="#f1f5f9" font-size="11" font-weight="700" text-anchor="middle">${p.val}${unit}</text><text x="${p.x}" y="${H-9}" fill="#94a3b8" font-size="10" text-anchor="middle">${p.d}</text>`).join('')}
+    </svg>`;
+  }
+
+  function openRegisterModalForCurrentMode() { if (currentTopMode === 'health') openHealthRegisterModal(); else openSkillRegisterModal(); }
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+  (async function boot() {
+    if (!isCloud) await initLocalFallback();
+    await refreshCurrentList();
+  })();
+</script>
+</body>
+</html>
